@@ -124,11 +124,12 @@
     }
     .setting-label { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px; }
     
-    .text-input {
+    .text-input, .select-input {
         background: #111; border: 1px solid #444;
         color: #fff; padding: 8px 10px; border-radius: 8px;
         width: 100%; font-family: inherit; font-size: 14px;
     }
+    .select-input { cursor: pointer; }
 
     /* Toggle Switch */
     .toggle-switch {
@@ -206,6 +207,7 @@
         /* Z-Index higher than result-screen (2000) */
         z-index: 9999;
         box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        white-space: nowrap;
     }
     .tt-date { color: #888; margin-bottom: 4px; font-weight: bold; }
     .tt-row { display: flex; justify-content: space-between; gap: 15px; margin-bottom: 2px; }
@@ -468,6 +470,14 @@
                     <span class="setting-label"><i class="bi bi-tag"></i> Bottom Graph Label</span>
                     <input type="text" id="config-bottom-title" class="text-input" value="Daily Gain">
                 </div>
+                
+                <!-- Gap Target Selection -->
+                <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
+                    <span class="setting-label"><i class="bi bi-crosshair"></i> Gap Target (0 line will be hidden)</span>
+                    <select id="config-gap-target" class="select-input">
+                        <option value="Leader">Leader (Auto)</option>
+                    </select>
+                </div>
 
                 <!-- Total Value Label -->
                 <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
@@ -585,7 +595,7 @@
                 </div>
                 <!-- Half: Gap -->
                 <div class="res-card">
-                    <div class="res-head"><i class="bi bi-distribute-vertical"></i> Gap to Leader</div>
+                    <div class="res-head"><i class="bi bi-distribute-vertical"></i> Gap to Target (Hidden 0-line)</div>
                     <div class="res-canvas-container" id="con-gap">
                         <canvas id="res-canvas-gap" class="res-canvas"></canvas>
                     </div>
@@ -669,6 +679,7 @@
         title: "Subscriber Race",
         bottomTitle: "Daily Gain",
         totalLabel: "Combined Total",
+        gapTarget: "Leader", // Leader or specific item name
         enableGapSwitch: true,
         showResult: true,
         showBottomGraph: true,
@@ -692,6 +703,7 @@
 
     const confTitle = document.getElementById('config-title');
     const confBottomTitle = document.getElementById('config-bottom-title');
+    const confGapTarget = document.getElementById('config-gap-target');
     const confTotalLabel = document.getElementById('config-total-label');
     const confGapBtn = document.getElementById('config-gap-btn');
     const confResult = document.getElementById('config-result');
@@ -794,6 +806,7 @@
                     settingsScreen.style.display = 'flex';
                     settingsScreen.style.opacity = 1;
                 }
+                updateGapTargetOptions();
             } else {
                 alert("CSV Error: Check format.");
             }
@@ -808,6 +821,16 @@
             settingsScreen.style.display = 'flex';
         }, 300);
     });
+
+    function updateGapTargetOptions() {
+        confGapTarget.innerHTML = '<option value="Leader">Leader (Auto)</option>';
+        itemsList.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item;
+            opt.textContent = item;
+            confGapTarget.appendChild(opt);
+        });
+    }
 
     // Inputs Sync
     confDurSlider.addEventListener('input', () => { confDurInput.value = confDurSlider.value; });
@@ -830,6 +853,7 @@
         config.title = confTitle.value || "Subscriber Race";
         config.bottomTitle = confBottomTitle.value || "Daily Gain";
         config.totalLabel = confTotalLabel.value || "Combined Total";
+        config.gapTarget = confGapTarget.value;
         config.enableGapSwitch = confGapBtn.checked;
         config.showResult = confResult.checked;
         config.showBottomGraph = confBottom.checked;
@@ -959,23 +983,30 @@
         let items = [];
         let totalVal = 0;
         
+        // Helper to get val for specific item
+        const getVal = (name) => lerp(dLow.values[name], dHigh.values[name], ratio);
+
         itemsList.forEach(name => {
-            const v1 = dLow.values[name];
-            const v2 = dHigh.values[name];
-            const val = lerp(v1, v2, ratio);
-            
+            const val = getVal(name);
             const df1 = dLow.diffs[name];
             const df2 = dHigh.diffs[name];
             const diff = lerp(df1, df2, ratio);
-
             items.push({ name, val, diff });
             totalVal += val;
         });
 
-        // Sort
+        // Sort by Value for Bar Race
         items.sort((a,b) => b.val - a.val);
-        const currentLeaderVal = items[0].val;
         const maxVal = items[0].val; 
+        
+        // Determine Target Value for Gap
+        let gapTargetVal = 0;
+        if (config.gapTarget === 'Leader') {
+            gapTargetVal = items[0].val;
+        } else {
+            // If target is specific item
+            gapTargetVal = getVal(config.gapTarget);
+        }
 
         // Update Bars
         items.forEach((item, rank) => {
@@ -1008,11 +1039,19 @@
             }
 
             if(isGapMode) {
-                let gap = currentLeaderVal - item.val;
-                if (itemsList.length === 1) gap = 0; 
-                if(rank === 0) {
-                    el.gVal.innerHTML = '<i class="bi bi-trophy-fill"></i> Leader';
-                    el.gVal.style.color = 'var(--color-green)';
+                let gap = gapTargetVal - item.val;
+                // Gap logic: if I am the target or leader(in leader mode), gap is 0
+                
+                // Display logic
+                if (Math.abs(gap) < 0.1) {
+                    // Leader or Target itself
+                    if (config.gapTarget === 'Leader') {
+                        el.gVal.innerHTML = '<i class="bi bi-trophy-fill"></i> Leader';
+                        el.gVal.style.color = 'var(--color-green)';
+                    } else {
+                        el.gVal.innerHTML = '<i class="bi bi-crosshair"></i> Target';
+                        el.gVal.style.color = 'var(--color-green)';
+                    }
                 } else {
                     el.gVal.textContent = `(Gap: ${Math.floor(gap).toLocaleString()})`;
                     el.gVal.style.color = 'var(--color-sub)';
@@ -1075,12 +1114,20 @@
             if(mode === 'Total') return row.values[name];
             if(mode === 'Diff') return row.diffs[name];
             
-            let leader = -Infinity;
-            for(let m=0; m<items.length; m++) {
-                const v = row.values[items[m]];
-                if(v > leader) leader = v;
+            // Gap Mode
+            let targetVal = 0;
+            if (config.gapTarget === 'Leader') {
+                let leader = -Infinity;
+                for(let m=0; m<items.length; m++) {
+                    const v = row.values[items[m]];
+                    if(v > leader) leader = v;
+                }
+                targetVal = leader;
+            } else {
+                targetVal = row.values[config.gapTarget];
             }
-            let val = leader - row.values[name];
+            
+            let val = targetVal - row.values[name];
             return items.length === 1 ? 0 : val;
         };
 
@@ -1090,7 +1137,16 @@
         
         for(let i = loopStart; i <= calcEnd; i++) {
             for(let k=0; k<items.length; k++) {
-                const val = getValue(i, items[k]);
+                const name = items[k];
+                // Gap Mode Exclusion Logic for 0-line
+                // If specific target is selected, exclude the target itself (always 0)
+                if (mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) continue;
+
+                const val = getValue(i, name);
+                
+                // If Leader mode, we can't easily exclude the dynamic leader line, but usually it sits at 0.
+                // If user wants to see only non-zero lines, they should select a specific target.
+                
                 if (val < targetMin) targetMin = val;
                 if (val > targetMax) targetMax = val;
             }
@@ -1171,7 +1227,13 @@
                     // Draw Text
                     ctx.fillStyle = '#888';
                     const mNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                    ctx.fillText(mNames[d.getMonth()], x, h - 10);
+                    
+                    // Format: 13-Jan-18 style (DD-Mon-YY)
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    const mm = mNames[d.getMonth()];
+                    const yy = String(d.getFullYear()).slice(-2);
+                    
+                    ctx.fillText(`${dd}-${mm}-${yy}`, x, h - 10);
                 }
             }
             ctx.textAlign = 'left'; // Reset
@@ -1180,6 +1242,9 @@
         // LINES
         for(let k=0; k<items.length; k++) {
             const name = items[k];
+            // Exclusion logic for specific target (0 line removal)
+            if (mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) continue;
+
             ctx.beginPath();
             ctx.strokeStyle = colors[name];
             ctx.lineWidth = lineWidth;
@@ -1264,14 +1329,28 @@
             for(let i=0; i<data.length; i++) {
                 const row = data[i];
                 let rowObj = { date: row.date, values: {} };
-                let leader = -Infinity;
-                if(this.mode === 'Gap') items.forEach(n => { if(row.values[n]>leader) leader = row.values[n]; });
+                
+                // Determine Leader/Target for this row
+                let targetVal = 0;
+                if (config.gapTarget === 'Leader') {
+                    let leader = -Infinity;
+                    if(this.mode === 'Gap') items.forEach(n => { if(row.values[n]>leader) leader = row.values[n]; });
+                    targetVal = leader;
+                } else {
+                    targetVal = row.values[config.gapTarget];
+                }
+
                 items.forEach(name => {
                     let v;
                     if(this.mode==='Total') v = row.values[name];
                     else if(this.mode==='Diff') v = row.diffs[name];
-                    else v = Math.max(0, leader - row.values[name]);
+                    else v = Math.max(0, targetVal - row.values[name]);
+                    
                     rowObj.values[name] = v;
+                    
+                    // Exclusion for min/max calc (Scale optimization)
+                    if (this.mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) return;
+
                     if(v < minVal) minVal = v;
                     if(v > maxVal) maxVal = v;
                 });
@@ -1292,12 +1371,8 @@
             const dp = this.dataPoints[idx];
             tooltip.style.display = 'block';
             
-            // Global coordinates for tooltip
             const globalX = rect.left + relX;
             const globalY = rect.top + relY;
-
-            tooltip.style.left = (globalX + 15) + 'px';
-            tooltip.style.top = (globalY + 15) + 'px';
             
             let html = `<div class="tt-date">${formatDate(dp.date)}</div>`;
             let sorted = itemsList.map(n => ({n, v: dp.values[n]}))
@@ -1306,6 +1381,21 @@
                 html += `<div class="tt-row"><span style="color:${colors[item.n]}">${item.n}</span><span class="tt-val">${Math.floor(item.v).toLocaleString()}</span></div>`;
             });
             tooltip.innerHTML = html;
+
+            // Auto-position logic
+            const ttRect = tooltip.getBoundingClientRect();
+            const winW = window.innerWidth;
+            
+            // Default Right
+            let finalLeft = globalX + 15;
+            // Check if right edge overflows
+            if (finalLeft + ttRect.width > winW - 10) {
+                // Move to Left
+                finalLeft = globalX - ttRect.width - 15;
+            }
+            
+            tooltip.style.left = finalLeft + 'px';
+            tooltip.style.top = (globalY + 15) + 'px';
         }
 
         draw(hoverIdx = -1) {
@@ -1333,6 +1423,9 @@
             }
 
             itemsList.forEach(name => {
+                // Exclusion logic
+                if (this.mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) return;
+
                 ctx.beginPath(); 
                 ctx.strokeStyle = colors[name]; 
                 ctx.lineWidth = 2;
@@ -1524,7 +1617,7 @@
         isGapMode = !isGapMode;
         modeBtn.innerHTML = isGapMode ? '<i class="bi bi-distribute-vertical"></i> Gap Mode' : '<i class="bi bi-list-ol"></i> Total Mode';
         modeBtn.className = isGapMode ? 'icon-btn active' : 'icon-btn';
-        bottomGraphTitle.innerHTML = isGapMode ? `<i class="bi bi-distribute-vertical"></i> Gap to Leader` : `<i class="bi bi-graph-up"></i> ${config.bottomTitle}`;
+        bottomGraphTitle.innerHTML = isGapMode ? `<i class="bi bi-distribute-vertical"></i> Gap to Target` : `<i class="bi bi-graph-up"></i> ${config.bottomTitle}`;
         renderFrame();
     });
 
