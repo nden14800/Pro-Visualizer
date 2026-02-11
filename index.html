@@ -245,7 +245,9 @@
     
     /* Axis */
     #axis-container { 
-        position: absolute; top: 0; left: 10px; right: 10px; height: 30px; z-index: 2; 
+        position: absolute; top: 0; 
+        left: 0; width: 100%; 
+        height: 30px; z-index: 2; 
         pointer-events: none;
     }
     .grid-line { 
@@ -282,7 +284,6 @@
         display: flex; align-items: center;
         /* インナーラベルは左寄せにする */
         justify-content: flex-start; 
-        padding-left: 10px;
         overflow: visible; 
     }
 
@@ -299,8 +300,8 @@
         white-space: nowrap; z-index: 4;
         text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         transition: opacity 0.2s;
-        /* 左寄せで配置 */
-        margin-left: 2px;
+        /* 左寄せで配置 + 親のpadding削除分のマージンを追加 */
+        margin-left: 10px;
     }
 
     /* 数値コンテナ */
@@ -833,6 +834,8 @@
     let currentDisplayMax = 100;
     let smoothGraphMin = 0;
     let smoothGraphMax = 10;
+    let bgSmoothMin = 0;
+    let bgSmoothMax = 10;
 
     // Charts
     let chartTotal, chartGain, chartGap;
@@ -1177,6 +1180,13 @@
             const el = barElements[item.name];
             el.row.style.transform = `translateY(${rank * 70}px)`;
             
+            // Fix: 値が0以下の場合は棒の幅は0になるが、文字などは表示したままにする
+            if(item.val <= 0) {
+                el.bar.style.opacity = '1'; 
+            } else {
+                el.bar.style.opacity = '1';
+            }
+
             // Width calculation
             const barPct = (item.val / currentDisplayMax) * 100;
             el.bar.style.width = barPct + '%';
@@ -1217,7 +1227,6 @@
                 // Short Bar -> Outer Label
                 el.labelIn.style.opacity = '0';
                 el.popout.style.display = 'flex';
-                // Adjust popout content if necessary (it's static usually)
             } else {
                 // Long Bar -> Inner Label
                 el.labelIn.style.opacity = '1';
@@ -1244,11 +1253,19 @@
         smoothGraphMax = lerp(smoothGraphMax, range.max, 0.3);
 
         if(config.showBgGraph) {
+            // 背景グラフのオートスケーリング処理 (Daily Gainと同様のロジックで Total を表示)
+            // ウィンドウ内の最小値・最大値に合わせてY軸をフィットさせる
+            const bgRange = getGraphRange(processedData, itemsList, currentFloatIdx, HISTORY_WINDOW, 'Total');
+            
+            // スムージング
+            bgSmoothMin = lerp(bgSmoothMin, bgRange.min, 0.3);
+            bgSmoothMax = lerp(bgSmoothMax, bgRange.max, 0.3);
+
             renderGraph({
                 ctx: bgCtx, canvas: bgCanvas, data: processedData, items: itemsList,
                 currentIdx: currentFloatIdx, windowSize: HISTORY_WINDOW,
                 mode: 'Total', lineWidth: config.graphLineWidth, opacity: 1.0, 
-                isBackground: true, smoothMin: 0, smoothMax: totalVal * 1.2,
+                isBackground: true, smoothMin: bgSmoothMin, smoothMax: bgSmoothMax,
                 dotSize: config.graphDotSize
             });
         }
@@ -1364,8 +1381,8 @@
         };
 
         let range = smoothMax - smoothMin || 10;
-        const pMin = smoothMin - range * 0.1;
-        const pMax = smoothMax + range * 0.1;
+        const pMin = smoothMin;
+        const pMax = smoothMax;
         const pRange = pMax - pMin || 1;
 
         const padT = isBackground ? 0 : 15;
