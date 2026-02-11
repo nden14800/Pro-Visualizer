@@ -590,7 +590,7 @@
                 </div>
                 <!-- Half: Gap -->
                 <div class="res-card">
-                    <div class="res-head"><i class="bi bi-distribute-vertical"></i> Gap to Target (Hidden 0-line)</div>
+                    <div class="res-head"><i class="bi bi-distribute-vertical"></i> Gap to Target</div>
                     <div class="res-canvas-container" id="con-gap">
                         <canvas id="res-canvas-gap" class="res-canvas"></canvas>
                     </div>
@@ -681,7 +681,7 @@
     let TOTAL_DURATION_BASE = 300000; 
     let HISTORY_WINDOW = 100; 
     
-    // スムージング係数を微調整 (0.1) - アニメーションが先行しすぎないように遅らせる
+    // スムージング係数
     const SCALE_SMOOTHING = 0.1; 
 
     // User Config
@@ -697,6 +697,21 @@
         showTotal: true,
         showIcons: true
     };
+
+    // --- Suffixes List (10^3 to 10^306) ---
+    const SUFFIXES = [
+        "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", 
+        "Dc", "Ud", "Dd", "Td", "Qad", "Qid", "Sxd", "Spd", "Ocd", "Nod", 
+        "Vg", "Uvg", "Dvg", "Tvg", "Qavg", "Qivg", "Sxvg", "Spvg", "Ocvg", "Novg", 
+        "Tg", "Utg", "Dtg", "Ttg", "Qatg", "Qitg", "Sxtg", "Sptg", "Octg", "Notg", 
+        "Qg", "Uqg", "Dqg", "Tqg", "Qaqg", "Qiqg", "Sxqg", "Spqg", "Ocqg", "Noqg", 
+        "Qq", "Uqq", "Dqq", "Tqq", "Qaqq", "Qiqq", "Sxqq", "Spqq", "Ocqq", "Noqq", 
+        "Sg", "Usg", "Dsg", "Tsg", "Qasg", "Qisg", "Sxsg", "Spsg", "Ocsg", "Nosg", 
+        "St", "Ust", "Dst", "Tst", "Qast", "Qist", "Sxst", "Spst", "Ocst", "Nost", 
+        "Og", "Uog", "Dog", "Tog", "Qaog", "Qiog", "Sxog", "Spog", "Ocog", "Noog", 
+        "Ng", "Ung", "Dng", "Tng", "Qang", "Qing", "Sxng", "Spng", "Ocng", "Nong", 
+        "Ce", "Uce"
+    ];
 
     // DOM Elements
     const fileInput = document.getElementById('file-input');
@@ -1010,11 +1025,14 @@
 
     // --- Text Resizing Logic ---
     function updateScaledText(element, num, isGain) {
+        let val = Math.floor(num);
+        if(val === 0) val = 0; // Prevent -0
+        
         let str = "";
         if (isGain) {
-            str = (num >= 0 ? '+' : '') + Math.floor(num).toLocaleString();
+            str = (val >= 0 ? '+' : '') + val.toLocaleString();
         } else {
-            str = Math.floor(num).toLocaleString();
+            str = val.toLocaleString();
         }
         
         element.textContent = str;
@@ -1080,8 +1098,11 @@
             el.bar.style.width = barPct + '%';
             
             el.mVal.textContent = Math.floor(item.val).toLocaleString();
-            const gain = Math.floor(item.diff);
+            
+            let gain = Math.floor(item.diff);
+            if(gain === 0) gain = 0; // Prevent -0
             const gainStr = (gain >= 0 ? '+' : '') + gain.toLocaleString();
+            
             el.sVal.textContent = gainStr;
             el.sVal.className = 'val-sub' + (gain < 0 ? ' negative' : '');
 
@@ -1115,7 +1136,9 @@
                         el.gVal.style.color = 'var(--color-green)';
                     }
                 } else {
-                    el.gVal.textContent = `(Gap: ${Math.floor(gap).toLocaleString()})`;
+                    let displayGap = Math.floor(gap);
+                    if(displayGap === 0) displayGap = 0; // Prevent -0
+                    el.gVal.textContent = `(Gap: ${displayGap.toLocaleString()})`;
                     el.gVal.style.color = 'var(--color-sub)';
                 }
                 el.gVal.style.display = 'inline';
@@ -1167,7 +1190,10 @@
         const endIdx = Math.floor(currentIdx);
         const startIdx = Math.max(0, endIdx - windowSize);
         const loopStart = Math.max(0, startIdx - 2); 
-        const calcEnd = Math.min(totalLen - 1, endIdx + 5); 
+        
+        // MODIFIED: Stop calculation exactly at the current frame to prevent graph "looking ahead"
+        // This ensures Y-axis scale reflects current state, syncing with the line.
+        const calcEnd = Math.min(totalLen - 1, endIdx); 
 
         // Gap Mode Auto (Leader) - Show only the 2nd place (Chaser) to fix scale
         let activeItems = items;
@@ -1182,13 +1208,11 @@
                 });
                 
                 // Find the closest Chaser (2nd place or max item that is not leader)
-                // Since Leader Gap is 0, others are negative. We want the largest negative value (closest to 0).
                 let chaserName = null;
                 let chaserVal = -Infinity;
                 
                 items.forEach(name => {
                     const v = row.values[name];
-                    // Pick logic: If v < leaderVal (strictly), it is a chaser.
                     if (v < leaderVal && v > chaserVal) {
                         chaserVal = v;
                         chaserName = name;
@@ -1212,8 +1236,6 @@
             let targetVal = 0;
             if (config.gapTarget === 'Leader') {
                 let leader = -Infinity;
-                // For logic consistency, targetVal is always current Leader value
-                // Note: items here is full items list for leader calc
                 for(let m=0; m<items.length; m++) {
                     const v = row.values[items[m]];
                     if(v > leader) leader = v;
@@ -1244,13 +1266,16 @@
             }
         }
         
+        // Ensure reasonable defaults if no data
         if(targetMin === Infinity) targetMin = 0;
         if(targetMax === -Infinity) targetMax = 10;
         
         let range = targetMax - targetMin || 10;
+        
+        // MODIFIED: Allow negative values (Removed the Gap mode 0 clamp)
+        // Add minimal padding
         targetMin -= range * 0.1;
         targetMax += range * 0.1;
-        if(mode === 'Gap' && targetMin < 0) targetMin = -range * 0.05; 
 
         // Apply smooth scale change
         scaleState.min = lerp(scaleState.min, targetMin, SCALE_SMOOTHING);
@@ -1282,12 +1307,17 @@
             let niceStep = (norm<1.5)?1:(norm<3)?2:(norm<7)?5:10;
             const gridStep = niceStep * gridMag;
 
+            // Ensure grid lines cover negative areas correctly
             const startTick = Math.ceil(yMin / gridStep) * gridStep;
             for(let v = startTick; v <= yMax; v += gridStep) {
-                const y = paddingTop + drawH - ((v - yMin) / yRange) * drawH;
+                // Prevent -0 on axis
+                let displayV = v;
+                if (Math.abs(displayV) < 1e-10) displayV = 0;
+
+                const y = paddingTop + drawH - ((displayV - yMin) / yRange) * drawH;
                 if(y < paddingTop || y > h - paddingBottom) continue; 
                 ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-                ctx.fillText(formatNum(v), 5, y - 4);
+                ctx.fillText(formatNum(displayV), 5, y - 4);
             }
         }
 
@@ -1428,7 +1458,7 @@
                     let v;
                     if(this.mode==='Total') v = row.values[name];
                     else if(this.mode==='Diff') v = row.diffs[name];
-                    else v = Math.max(0, targetVal - row.values[name]);
+                    else v = targetVal - row.values[name];
                     
                     rowObj.values[name] = v;
                     
@@ -1442,7 +1472,7 @@
             
             let range = maxVal - minVal || 10;
             const buffer = range * 0.1;
-            this.yMin = (this.mode==='Gap' && minVal < 10) ? -buffer/2 : minVal - buffer;
+            this.yMin = minVal - buffer; // Support full negative range
             this.yMax = maxVal + buffer;
             this.yRange = this.yMax - this.yMin;
             
@@ -1461,7 +1491,9 @@
             let sorted = itemsList.map(n => ({n, v: dp.values[n]}))
                                   .sort((a,b) => (this.mode==='Gap' ? a.v - b.v : b.v - a.v)).slice(0, 8); 
             sorted.forEach(item => {
-                html += `<div class="tt-row"><span style="color:${colors[item.n]}">${item.n}</span><span class="tt-val">${Math.floor(item.v).toLocaleString()}</span></div>`;
+                let val = Math.floor(item.v);
+                if(val === 0) val = 0;
+                html += `<div class="tt-row"><span style="color:${colors[item.n]}">${item.n}</span><span class="tt-val">${val.toLocaleString()}</span></div>`;
             });
             tooltip.innerHTML = html;
 
@@ -1498,7 +1530,10 @@
                 const y = getY(v);
                 if(y < 5 || y > h - 5) continue;
                 ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
-                ctx.fillText(formatNum(v), 5, y-4);
+                
+                let displayV = v;
+                if (Math.abs(displayV) < 1e-10) displayV = 0;
+                ctx.fillText(formatNum(displayV), 5, y-4);
             }
 
             itemsList.forEach(name => {
@@ -1704,11 +1739,30 @@
         const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
         return `${m[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
     }
+    
+    // --- FORMATTER (Comprehensive) ---
     function formatNum(n) {
-        if(Math.abs(n) >= 1e9) return (n/1e9).toFixed(1).replace('.0','') + 'B';
-        if(Math.abs(n) >= 1e6) return (n/1e6).toFixed(1).replace('.0','') + 'M';
-        if(Math.abs(n) >= 1e3) return (n/1e3).toFixed(1).replace('.0','') + 'K';
-        return Math.floor(n).toLocaleString();
+        if (n === 0 || Math.abs(n) < 1e-10) return "0"; // Handle 0 and -0
+        
+        let abs = Math.abs(n);
+        let sign = n < 0 ? "-" : "";
+
+        if (abs < 1000) return sign + Math.floor(abs).toLocaleString();
+
+        // 10^3 (K) is index 0 in SUFFIXES
+        // log10(1000) = 3 -> (3/3)-1 = 0
+        // log10(1e6) = 6 -> (6/3)-1 = 1
+        const exp = Math.floor(Math.log10(abs) / 3);
+        const suffixIndex = exp - 1;
+
+        if (suffixIndex >= 0 && suffixIndex < SUFFIXES.length) {
+            const scaled = abs / Math.pow(1000, exp);
+            // Show 1 decimal place, remove .0
+            return sign + scaled.toFixed(1).replace('.0','') + SUFFIXES[suffixIndex];
+        }
+        
+        // Fallback for extremely huge numbers not in list (unlikely with this list)
+        return sign + Math.floor(abs).toLocaleString();
     }
     
     function renderAxisNice(maxVal) {
