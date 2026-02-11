@@ -19,7 +19,7 @@
         --color-red: #ff5252;
         --color-blue: #2979ff;
         --color-sub: #888;
-        --font-main: 'Inter', sans-serif; /* 日本語フォントはOS標準にフォールバック */
+        --font-main: 'Inter', sans-serif;
     }
 
     * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -34,7 +34,6 @@
         height: 100vh;
         display: flex;
         flex-direction: column;
-        /* 数字のガタつき防止 */
         font-variant-numeric: tabular-nums;
     }
 
@@ -106,11 +105,12 @@
     }
     .action-btn:active { transform: scale(0.98); filter: brightness(0.9); }
     .action-btn.secondary { background: #333; color: #fff; }
+    .action-btn.danger { background: #d32f2f; color: #fff; font-size: 14px; padding: 12px 20px; }
 
     /* --- Settings Screen --- */
     .settings-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr; /* 2列に変更 */
+        grid-template-columns: 1fr 1fr;
         gap: 15px;
         text-align: left;
         width: 100%;
@@ -136,7 +136,6 @@
     }
     .select-input { cursor: pointer; }
 
-    /* Toggle Switch */
     .toggle-switch {
         position: relative; width: 46px; height: 24px; flex-shrink: 0;
     }
@@ -238,28 +237,33 @@
     #chart-area { 
         position: relative; flex: 2; 
         margin: 10px 10px 0 10px; 
-        /* Axis表示のために上部にスペースを確保 */
         padding-top: 30px; 
         overflow: hidden; 
     }
     
     #bg-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.5; }
     
-    /* Axisを可視領域内に配置 */
+    /* Axis */
     #axis-container { 
-        position: absolute; top: 0; left: 0; width: 100%; height: 30px; z-index: 2; 
+        position: absolute; top: 0; left: 10px; right: 10px; height: 30px; z-index: 2; 
         pointer-events: none;
     }
-    .grid-line { position: absolute; top: 30px; bottom: -100vh; width: 1px; background: rgba(255,255,255,0.08); z-index: 1; }
+    .grid-line { 
+        position: absolute; top: 30px; bottom: -100vh; width: 1px; 
+        background: rgba(255,255,255,0.08); z-index: 1; 
+        transition: left 0.1s linear;
+    }
     .axis-label { 
         position: absolute; top: 5px; transform: translateX(-50%); 
         font-size: 12px; color: #666; font-weight: 700; 
+        transition: left 0.1s linear;
     }
+    /* 0が見切れるのを防ぐ - 0の時は左寄せ */
+    .axis-label[data-val="0"] { transform: translateX(0); }
 
-    /* バーのコンテナ：見切れ防止のため右パディングを増やす */
+    /* バーのコンテナ */
     #bars-container { 
         position: relative; width: 100%; height: 100%; z-index: 5; 
-        padding-right: 220px; /* 値が見切れないように十分な余白 */
     }
     .bar-row { 
         position: absolute; left: 0; width: 100%; height: 60px; display: flex; align-items: center; 
@@ -276,8 +280,9 @@
         will-change: width; transition: background-color 0.2s;
         min-width: 0; 
         display: flex; align-items: center;
-        justify-content: flex-end; 
-        padding-right: 15px; 
+        /* インナーラベルは左寄せにする */
+        justify-content: flex-start; 
+        padding-left: 10px;
         overflow: visible; 
     }
 
@@ -293,41 +298,57 @@
         font-weight: 900; font-size: 20px; 
         white-space: nowrap; z-index: 4;
         text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-        transition: color 0.2s;
-        margin-right: auto; padding-left: 10px; /* 左寄せに変更 */
-    }
-    
-    .label-popout {
-        position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
-        margin-left: 10px;
-        background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px;
-        color: #fff !important; font-size: 14px;
-        display: flex; align-items: center;
-        white-space: nowrap;
-        z-index: 10;
+        transition: opacity 0.2s;
+        /* 左寄せで配置 */
+        margin-left: 2px;
     }
 
-    /* Updated Value Layout */
-    .bar-values {
+    /* 数値コンテナ */
+    .bar-values-container {
         position: absolute; left: 100%; margin-left: 12px;
-        display: flex; flex-direction: column; justify-content: center;
+        display: flex; align-items: center; gap: 15px;
+        transform: translateY(-2px);
+    }
+
+    /* Updated Value Layout: Vertical Stack */
+    .bar-values-col {
+        display: flex; flex-direction: column; 
+        justify-content: center;
         line-height: 1.1; white-space: nowrap;
-        align-items: flex-start; /* 左揃え */
+        align-items: flex-start;
+        gap: 2px;
     }
     
-    .val-row-main { display: flex; align-items: baseline; gap: 8px; }
-    .val-row-sub  { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }
+    .val-row { display: flex; align-items: baseline; gap: 6px; }
 
-    /* Font sizes managed by JS dynamically */
-    .val-main { font-weight: 900; color: #fff; letter-spacing: -0.5px; transition: font-size 0.1s; }
-    .val-diff { font-weight: 700; color: var(--color-green); transition: font-size 0.1s; }
+    /* Popout Label Style (画像のような半透明枠) */
+    .label-popout {
+        color: #fff !important; 
+        font-weight: 700; font-size: 16px;
+        white-space: nowrap;
+        background: rgba(0,0,0,0.6);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 6px;
+        padding: 4px 10px;
+        display: flex; align-items: center; gap: 8px;
+        backdrop-filter: blur(2px);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .popout-img {
+        width: 24px; height: 24px; border-radius: 50%; border: 1px solid #fff;
+        object-fit: cover;
+    }
+
+    /* Font sizes */
+    .val-main { font-weight: 900; color: #fff; letter-spacing: -0.5px; transition: font-size 0.1s; line-height: 1; }
+    .val-diff { font-weight: 700; color: var(--color-green); transition: font-size 0.1s; line-height: 1; }
     .val-diff.negative { color: var(--color-red); }
 
     .val-gap-label { font-size: 10px; color: #666; font-weight: 700; margin-right: 2px; }
     .val-gap { font-weight: 700; color: #ccc; transition: font-size 0.1s; }
     .val-gap-diff { font-weight: 700; color: var(--color-sub); transition: font-size 0.1s; }
-    .val-gap-diff.positive { color: var(--color-red); } /* Gapが増える＝悪い */
-    .val-gap-diff.negative { color: var(--color-blue); } /* Gapが減る＝良い */
+    .val-gap-diff.positive { color: var(--color-red); } 
+    .val-gap-diff.negative { color: var(--color-blue); } 
 
     /* Bottom Info */
     .bottom-section {
@@ -416,7 +437,7 @@
         <div class="modal-box">
             <div>
                 <h2>Pro Visualizer</h2>
-                <p class="sub">Ultimate Edition JP</p>
+                <p class="sub">Ultimate Edition JP v3</p>
             </div>
             
             <label for="file-input" class="file-label">
@@ -435,7 +456,12 @@
     <!-- Settings Screen -->
     <div id="settings-screen" class="overlay-screen" style="display:none;">
         <div class="modal-box">
-            <h2><i class="bi bi-gear-fill"></i> 詳細設定</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                <h2><i class="bi bi-gear-fill"></i> 詳細設定</h2>
+                <button id="reset-settings-btn" class="action-btn danger" style="width:auto;">
+                    <i class="bi bi-arrow-counterclockwise"></i> リセット
+                </button>
+            </div>
             
             <div class="settings-grid">
                 <!-- Title -->
@@ -539,6 +565,14 @@
                         <input type="range" id="config-line-width" min="1" max="10" value="4" style="flex:1;">
                      </div>
                 </div>
+
+                <div class="setting-item settings-full-width">
+                    <span class="setting-label"><i class="bi bi-opacity"></i> 背景グラフの不透明度</span>
+                    <div style="display:flex; width:100%; gap:10px; align-items:center;">
+                       <input type="range" id="config-bg-opacity" min="10" max="100" value="60" style="flex:1;">
+                       <span id="bg-opacity-disp" style="font-size:12px; color:#888;">60%</span>
+                    </div>
+               </div>
             </div>
 
             <button id="start-btn" class="action-btn">
@@ -580,7 +614,7 @@
                 </div>
                 <!-- Half: Gap -->
                 <div class="res-card">
-                    <div class="res-head"><i class="bi bi-distribute-vertical"></i> 1位との差 (Gap)</div>
+                    <div class="res-head" id="res-gap-title"><i class="bi bi-distribute-vertical"></i> Gap</div>
                     <div class="res-canvas-container" id="con-gap">
                         <canvas id="res-canvas-gap" class="res-canvas"></canvas>
                     </div>
@@ -671,8 +705,8 @@
     let TOTAL_DURATION_BASE = 300000; 
     let HISTORY_WINDOW = 100; 
 
-    // User Config
-    const config = {
+    // Defaults for Reset
+    const DEFAULT_CONFIG = {
         title: "Subscriber Race",
         bottomTitle: "Daily Gain",
         totalLabel: "Combined Total",
@@ -683,8 +717,13 @@
         showBgGraph: true,
         showTotal: true,
         showIcons: true,
-        graphLineWidth: 4
+        graphLineWidth: 4,
+        bgOpacity: 60,
+        history: 100,
+        duration: 300
     };
+
+    let config = { ...DEFAULT_CONFIG };
 
     // --- Suffixes List (10^3 to 10^306) ---
     const SUFFIXES = [
@@ -716,6 +755,7 @@
     const changeFileResBtn = document.getElementById('change-file-result-btn');
     const openSettingsBtn = document.getElementById('open-settings-btn');
     const restartBtn = document.getElementById('restart-btn');
+    const resetSettingsBtn = document.getElementById('reset-settings-btn');
 
     // Config Inputs
     const confTitle = document.getElementById('config-title');
@@ -730,6 +770,8 @@
     const confTotal = document.getElementById('config-total');
     const confIcons = document.getElementById('config-icons');
     const confLineWidth = document.getElementById('config-line-width');
+    const confBgOpacity = document.getElementById('config-bg-opacity');
+    const bgOpacityDisp = document.getElementById('bg-opacity-disp');
     
     const confDurSlider = document.getElementById('config-duration-slider');
     const confDurInput = document.getElementById('config-duration-input');
@@ -742,6 +784,7 @@
     const combinedDisplay = document.getElementById('combined-display');
     const combinedGain = document.getElementById('combined-gain');
     const bottomGraphTitle = document.getElementById('bottom-graph-title');
+    const resGapTitle = document.getElementById('res-gap-title');
     const statLabelEl = document.getElementById('stat-label-el');
     const combinedBox = document.getElementById('combined-box');
     const dailyGraphBox = document.getElementById('daily-graph-box');
@@ -776,6 +819,11 @@
     let barElements = {}; 
     let isGapMode = false;
     let animationFrameId = null;
+
+    // Smooth Animation States
+    let currentDisplayMax = 100;
+    let smoothGraphMin = 0;
+    let smoothGraphMax = 10;
 
     // Charts
     let chartTotal, chartGain, chartGap;
@@ -836,6 +884,7 @@
         }, 300);
     });
 
+    // --- Settings Logic ---
     function updateGapTargetOptions() {
         const createOpts = (sel) => {
             sel.innerHTML = '<option value="Leader">1位 (自動)</option>';
@@ -851,8 +900,54 @@
         dynamicGapTarget.value = config.gapTarget;
     }
 
-    confGapTarget.addEventListener('change', () => { config.gapTarget = confGapTarget.value; dynamicGapTarget.value = confGapTarget.value; });
-    dynamicGapTarget.addEventListener('change', () => { config.gapTarget = dynamicGapTarget.value; confGapTarget.value = dynamicGapTarget.value; renderFrame(); });
+    // Sync Gap Targets
+    confGapTarget.addEventListener('change', () => { 
+        config.gapTarget = confGapTarget.value; 
+        dynamicGapTarget.value = confGapTarget.value; 
+        updateGapTitles();
+    });
+    dynamicGapTarget.addEventListener('change', () => { 
+        config.gapTarget = dynamicGapTarget.value; 
+        confGapTarget.value = dynamicGapTarget.value; 
+        updateGapTitles();
+        renderFrame(); 
+    });
+
+    function updateGapTitles() {
+        const suffix = config.gapTarget === 'Leader' ? "1位との差 (Gap)" : `${config.gapTarget}との差`;
+        if (isGapMode) {
+            bottomGraphTitle.innerHTML = `<i class="bi bi-distribute-vertical"></i> ${suffix}`;
+        }
+        resGapTitle.innerHTML = `<i class="bi bi-distribute-vertical"></i> ${suffix}`;
+    }
+
+    resetSettingsBtn.addEventListener('click', () => {
+        if(confirm("設定を初期値に戻しますか？")) {
+            config = { ...DEFAULT_CONFIG };
+            applyConfigToDOM();
+        }
+    });
+
+    function applyConfigToDOM() {
+        confTitle.value = config.title;
+        confBottomTitle.value = config.bottomTitle;
+        confTotalLabel.value = config.totalLabel;
+        confGapTarget.value = config.gapTarget;
+        confShowGapDetail.checked = config.showGapDetail;
+        confResult.checked = config.showResult;
+        confBottom.checked = config.showBottomGraph;
+        confBg.checked = config.showBgGraph;
+        confTotal.checked = config.showTotal;
+        confIcons.checked = config.showIcons;
+        confLineWidth.value = config.graphLineWidth;
+        confBgOpacity.value = config.bgOpacity;
+        bgOpacityDisp.textContent = config.bgOpacity + "%";
+        
+        confDurInput.value = config.duration;
+        confDurSlider.value = config.duration;
+        confHistInput.value = config.history;
+        confHistSlider.value = config.history;
+    }
 
     openSettingsBtn.addEventListener('click', () => {
         isPlaying = false;
@@ -867,6 +962,7 @@
 
     restartBtn.addEventListener('click', () => {
         animationTime = 0;
+        currentDisplayMax = itemsList.length > 0 ? 100 : 100;
         isPlaying = true;
         playPauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
         lastFrameTime = performance.now();
@@ -887,8 +983,11 @@
         let val = parseInt(confHistInput.value); if(val < 1) val = 1;
         confHistInput.value = val; if(val <= 500) confHistSlider.value = val;
     });
+    
+    confBgOpacity.addEventListener('input', () => { bgOpacityDisp.textContent = confBgOpacity.value + "%"; });
 
     startBtn.addEventListener('click', () => {
+        // Load from DOM to Config
         config.title = confTitle.value || "Subscriber Race";
         config.bottomTitle = confBottomTitle.value || "Daily Gain";
         config.totalLabel = confTotalLabel.value || "Combined Total";
@@ -900,9 +999,11 @@
         config.showTotal = confTotal.checked;
         config.showIcons = confIcons.checked;
         config.graphLineWidth = parseInt(confLineWidth.value) || 4;
-
-        dynamicGapTarget.value = config.gapTarget;
+        config.bgOpacity = parseInt(confBgOpacity.value) || 60;
         
+        dynamicGapTarget.value = config.gapTarget;
+        updateGapTitles();
+
         const durVal = parseInt(confDurInput.value);
         if(durVal && durVal > 0) TOTAL_DURATION_BASE = durVal * 1000;
         const histVal = parseInt(confHistInput.value);
@@ -914,6 +1015,7 @@
         
         dailyGraphBox.style.visibility = config.showBottomGraph ? 'visible' : 'hidden';
         bgCanvas.style.display = config.showBgGraph ? 'block' : 'none';
+        bgCanvas.style.opacity = config.bgOpacity / 100;
         combinedBox.style.visibility = config.showTotal ? 'visible' : 'hidden';
 
         settingsScreen.style.opacity = 0;
@@ -923,6 +1025,13 @@
         createDOMBars();
         
         animationTime = 0;
+        // Init smooth states
+        if (processedData.length > 0) {
+            let initialMax = 0;
+            itemsList.forEach(n => { if(processedData[0].values[n] > initialMax) initialMax = processedData[0].values[n]; });
+            currentDisplayMax = initialMax || 100;
+        }
+
         seekSlider.value = 0;
         seekVal.textContent = "0%";
         
@@ -984,7 +1093,6 @@
         element.textContent = str;
         const len = str.length;
 
-        // More aggressive scaling logic for larger numbers
         if (type === 'main' || type === 'total') {
             if (len > 15) element.style.fontSize = '12px';
             else if (len > 13) element.style.fontSize = '14px';
@@ -995,15 +1103,15 @@
              if (len > 12) element.style.fontSize = '9px';
              else if (len > 10) element.style.fontSize = '10px';
              else if (len > 8) element.style.fontSize = '12px';
-             else element.style.fontSize = '16px';
+             else element.style.fontSize = '14px';
         } else if (type === 'gap') {
              if (len > 12) element.style.fontSize = '10px';
              else if (len > 10) element.style.fontSize = '11px';
-             else element.style.fontSize = '14px';
+             else element.style.fontSize = '12px';
         } else if (type === 'gap-diff') {
              if (len > 12) element.style.fontSize = '9px';
              else if (len > 10) element.style.fontSize = '10px';
-             else element.style.fontSize = '12px';
+             else element.style.fontSize = '11px';
         }
     }
 
@@ -1037,6 +1145,11 @@
         items.sort((a,b) => b.val - a.val);
         const maxVal = items[0].val; 
         
+        // --- Smooth Max Interpolation (Faster Response) ---
+        const targetDisplayMax = maxVal * 1.5; 
+        // 0.3 factor makes it catch up faster than 0.1
+        currentDisplayMax = lerp(currentDisplayMax, targetDisplayMax, 0.3);
+
         // Gap Target Logic
         let targetVal = 0;
         let targetDiff = 0;
@@ -1053,25 +1166,21 @@
             const el = barElements[item.name];
             el.row.style.transform = `translateY(${rank * 70}px)`;
             
-            const barPct = (item.val / (maxVal * 1.25)) * 100;
+            // Width calculation
+            const barPct = (item.val / currentDisplayMax) * 100;
             el.bar.style.width = barPct + '%';
             
-            // Text Updates with Scaling
+            // Text Updates
             updateAdaptiveText(el.mVal, item.val, 'main');
             updateAdaptiveText(el.sVal, item.diff, 'gain');
             el.sVal.className = 'val-diff' + (item.diff < 0 ? ' negative' : '');
 
-            // Gap & Gap Gain
+            // Gap Info
             if (config.showGapDetail) {
                 let gap = targetVal - item.val;
-                // Gap Gain calculation: 
-                // Gap = Target - Self. 
-                // NextGap = NextTarget - NextSelf.
-                // GapDiff = NextGap - Gap = (NextTarget - Target) - (NextSelf - Self) = TargetDiff - SelfDiff
                 let gapDiff = targetDiff - item.diff;
 
                 if (Math.abs(gap) < 0.1) {
-                    // It is the target
                     el.gVal.innerHTML = config.gapTarget==='Leader'?'Leader':'Target';
                     el.gVal.style.color = 'var(--color-green)';
                     el.gdVal.textContent = '';
@@ -1079,9 +1188,6 @@
                     updateAdaptiveText(el.gVal, gap, 'gap');
                     el.gVal.style.color = '#ccc';
                     updateAdaptiveText(el.gdVal, gapDiff, 'gap-diff');
-                    
-                    // Color logic for Gap Diff: Positive means gap grew (bad for chaser), Negative means gap shrank (good)
-                    // If gap is negative (ahead of target), logic flips, but standard race implies leader is ahead.
                     el.gdVal.className = 'val-gap-diff' + (gapDiff > 0 ? ' positive' : ' negative');
                 }
                 el.gRow.style.display = 'flex';
@@ -1089,34 +1195,28 @@
                 el.gRow.style.display = 'none';
             }
 
-            // Labels
+            // --- Label Logic ---
             const name = item.name;
             const contrastColor = getContrastYIQ(colors[name]);
-            const labelWidth = name.length * 12 + 50; 
             const barWidthPx = (barsContainer.clientWidth * barPct) / 100;
+            const nameLen = name.length * 12 + 40; 
 
-            if(barWidthPx < labelWidth) {
-                el.labelIn.textContent = "";
-                el.labelOut.textContent = name;
-                el.labelOut.style.display = "flex";
+            // Logic: If bar is too short, show Outer Label. Else show Inner Label.
+            if(barWidthPx < nameLen) {
+                // Short Bar -> Outer Label
+                el.labelIn.style.opacity = '0';
+                el.popout.style.display = 'flex';
+                // Adjust popout content if necessary (it's static usually)
             } else {
-                el.labelIn.textContent = name;
+                // Long Bar -> Inner Label
+                el.labelIn.style.opacity = '1';
                 el.labelIn.style.color = contrastColor;
-                el.labelOut.style.display = "none";
-            }
-
-            // Gap Mode Visual (Bar Length)
-            if(isGapMode) {
-                // Gap mode: show bar as distance from leader? Or diff?
-                // Visualizer usually keeps bars proportional to value. Gap is text.
-                // If user wants "Gap Mode" bars, we recalculate width.
-                // Assuming "Gap Mode" just changes text info in prev version, but now we have text always.
-                // Let's make "Gap Mode" change the bottom graph to Gap History.
+                el.popout.style.display = 'none';
             }
         });
 
         // Global Stats
-        renderAxisNice(maxVal * 1.25);
+        renderAxisNice(currentDisplayMax);
         const dObj = new Date(lerp(dLow.date.getTime(), dHigh.date.getTime(), ratio));
         dateDisplay.textContent = formatDate(dObj);
         
@@ -1124,11 +1224,20 @@
         updateAdaptiveText(combinedGain, totalGain, 'gain');
         combinedGain.className = 'stat-gain' + (totalGain < 0 ? ' negative' : '');
 
+        // --- Graph Smoothing Calculations (Faster Response) ---
+        const graphMode = isGapMode ? 'Gap' : 'Diff';
+        const range = getGraphRange(processedData, itemsList, currentFloatIdx, HISTORY_WINDOW, graphMode);
+        
+        // Faster Lerp for graph scaling (0.3)
+        smoothGraphMin = lerp(smoothGraphMin, range.min, 0.3);
+        smoothGraphMax = lerp(smoothGraphMax, range.max, 0.3);
+
         if(config.showBgGraph) {
             renderGraph({
                 ctx: bgCtx, canvas: bgCanvas, data: processedData, items: itemsList,
                 currentIdx: currentFloatIdx, windowSize: HISTORY_WINDOW,
-                mode: 'Total', lineWidth: config.graphLineWidth, opacity: 0.6
+                mode: 'Total', lineWidth: config.graphLineWidth, opacity: 1.0, 
+                isBackground: true, smoothMin: 0, smoothMax: totalVal * 1.2 
             });
         }
 
@@ -1136,14 +1245,64 @@
             renderGraph({
                 ctx: dailyCtx, canvas: dailyCanvas, data: processedData, items: itemsList,
                 currentIdx: currentFloatIdx, windowSize: HISTORY_WINDOW,
-                mode: isGapMode ? 'Gap' : 'Diff', lineWidth: 3, opacity: 1.0,
-                drawXAxis: true
+                mode: graphMode, lineWidth: config.graphLineWidth, opacity: 1.0,
+                drawXAxis: true, isBackground: false,
+                smoothMin: smoothGraphMin, smoothMax: smoothGraphMax
             });
         }
     }
 
-    // --- Dynamic Graph Renderer (Fixed Sync) ---
-    function renderGraph({ctx, canvas, data, items, currentIdx, windowSize, mode, lineWidth, opacity, drawXAxis}) {
+    // --- Helper to get graph range for current window ---
+    function getGraphRange(data, items, currentIdx, windowSize, mode) {
+        const totalLen = data.length;
+        const endIdx = Math.floor(currentIdx);
+        const startIdx = Math.max(0, endIdx - windowSize);
+        let localMin = Infinity;
+        let localMax = -Infinity;
+
+        let activeItems = items;
+        if (mode === 'Gap' && config.gapTarget === 'Leader') {
+             const row = data[endIdx];
+             if(row) {
+                 let leaderVal = -Infinity;
+                 items.forEach(n => { if(row.values[n]>leaderVal) leaderVal = row.values[n]; });
+                 let chaserName = null; let chaserVal = -Infinity;
+                 items.forEach(n => {
+                     if (row.values[n] < leaderVal && row.values[n] > chaserVal) {
+                         chaserVal = row.values[n]; chaserName = n;
+                     }
+                 });
+                 if (chaserName) activeItems = [chaserName];
+             }
+        }
+
+        for(let i = startIdx; i <= Math.min(totalLen-1, endIdx+1); i++) {
+            const row = data[i];
+            for(let k=0; k<activeItems.length; k++) {
+                const name = activeItems[k];
+                if (mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) continue;
+
+                let val;
+                if(mode === 'Diff') val = row.diffs[name];
+                else if (mode === 'Gap') {
+                    let targetVal = (config.gapTarget === 'Leader') ? Math.max(...items.map(n=>row.values[n])) : row.values[config.gapTarget];
+                    val = targetVal - row.values[name];
+                } else {
+                    val = row.values[name];
+                }
+                
+                if(val < localMin) localMin = val;
+                if(val > localMax) localMax = val;
+            }
+        }
+        if(localMin === Infinity) localMin = 0;
+        if(localMax === -Infinity) localMax = 10;
+        return { min: localMin, max: localMax };
+    }
+
+
+    // --- Dynamic Graph Renderer (Fixed Sync & Smoothing) ---
+    function renderGraph({ctx, canvas, data, items, currentIdx, windowSize, mode, lineWidth, opacity, drawXAxis, isBackground, smoothMin, smoothMax}) {
         const w = canvas.logicalWidth;
         const h = canvas.logicalHeight;
         ctx.clearRect(0, 0, w, h);
@@ -1152,17 +1311,16 @@
         const totalLen = data.length;
         if(totalLen < 2) return;
 
-        // Exact window for calculation
         const endIdx = Math.floor(currentIdx);
         const startIdx = Math.max(0, endIdx - windowSize);
-        // Loop start allows drawing line from slightly before left edge
         const loopStart = Math.max(0, startIdx - 1); 
         
-        // Gap Mode Logic (Leader tracking)
         let activeItems = items;
-        if (mode === 'Gap' && config.gapTarget === 'Leader') {
-            const row = data[endIdx]; 
-            if(row) {
+        if (isBackground) {
+             // Background Graph Logic
+        } else if (mode === 'Gap' && config.gapTarget === 'Leader') {
+             const row = data[endIdx]; 
+             if(row) {
                 let leaderVal = -Infinity;
                 items.forEach(n => { if(row.values[n]>leaderVal) leaderVal = row.values[n]; });
                 let chaserName = null; let chaserVal = -Infinity;
@@ -1178,10 +1336,9 @@
         const getValue = (idx, name) => {
             idx = Math.max(0, Math.min(totalLen - 1, idx));
             const row = data[idx];
-            if(mode === 'Total') return row.values[name];
+            if(mode === 'Total') return row.values[name]; 
             if(mode === 'Diff') return row.diffs[name];
             
-            // Gap Calc
             let targetVal = 0;
             if (config.gapTarget === 'Leader') {
                 let leader = -Infinity;
@@ -1193,49 +1350,26 @@
             return targetVal - row.values[name];
         };
 
-        // --- PRECISE SCALE CALCULATION (NO LERP) ---
-        // Calculate Min/Max exactly for the points that will be drawn in this frame.
-        let localMin = Infinity;
-        let localMax = -Infinity;
-
-        // Check range [startIdx, endIdx + 1] to cover the interpolation
-        const checkEnd = Math.min(totalLen - 1, endIdx + 1);
-
-        for(let i = loopStart; i <= checkEnd; i++) {
-            for(let k=0; k<activeItems.length; k++) {
-                const name = activeItems[k];
-                if (mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) continue;
-                const val = getValue(i, name);
-                if (val < localMin) localMin = val;
-                if (val > localMax) localMax = val;
-            }
-        }
-        
-        if(localMin === Infinity) localMin = 0;
-        if(localMax === -Infinity) localMax = 10;
-        
-        let range = localMax - localMin || 10;
-        // Padding
-        const pMin = localMin - range * 0.1;
-        const pMax = localMax + range * 0.1;
+        let range = smoothMax - smoothMin || 10;
+        const pMin = smoothMin - range * 0.1;
+        const pMax = smoothMax + range * 0.1;
         const pRange = pMax - pMin || 1;
 
-        // Layout
-        const padT = 15;
-        const padB = drawXAxis ? 30 : 15;
-        const padL = 0;
-        const padR = 10;
+        const padT = isBackground ? 0 : 15;
+        const padB = isBackground ? 0 : (drawXAxis ? 30 : 15);
+        const padL = isBackground ? 0 : 0; 
+        const padR = isBackground ? 0 : 10;
+        
         const drawH = h - (padT + padB);
         const drawW = w - (padL + padR);
 
-        // GRID (Synchronized)
-        ctx.fillStyle = '#555';
-        ctx.font = '10px Inter';
-        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-        ctx.lineWidth = 1;
+        // GRID
+        if (!isBackground) {
+            ctx.fillStyle = '#555';
+            ctx.font = '10px Inter';
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
 
-        // Draw Grid lines based on current pMin/pMax
-        if(mode !== 'Total') {
             const roughStep = pRange / 5; 
             const gridMag = Math.pow(10, Math.floor(Math.log10(roughStep)));
             const norm = roughStep / gridMag;
@@ -1264,25 +1398,22 @@
             for(let i = iStart; i <= iEnd; i++) {
                 if(i < 0 || i >= totalLen) continue;
                 const d = data[i].date;
-                if(d.getDate() === 1) {
+                if(d.getDate() === 1) { 
                     const x = getX(i);
                     ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, h - padB); 
                     ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.stroke();
                     ctx.fillStyle = '#888';
-                    
-                    // Format: 9-Dec-18
                     const dd = d.getDate();
                     const mNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
                     const mm = mNames[d.getMonth()];
                     const yy = String(d.getFullYear()).slice(-2);
-                    
                     ctx.fillText(`${dd}-${mm}-${yy}`, x, h - 10);
                 }
             }
             ctx.textAlign = 'left'; 
         }
 
-        // LINES
+        // LINES & DOTS
         for(let k=0; k<activeItems.length; k++) {
             const name = activeItems[k];
             if (mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) continue;
@@ -1292,6 +1423,7 @@
             ctx.lineWidth = lineWidth;
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
+            if (isBackground) ctx.globalCompositeOperation = 'source-over';
 
             let lastX, lastY;
             let started = false;
@@ -1299,7 +1431,6 @@
             const processPoint = (i, isTip) => {
                 let val;
                 if(isTip) {
-                    // Interpolate last segment
                     const idxLow = Math.floor(i);
                     const idxHigh = Math.min(totalLen - 1, idxLow + 1);
                     const r = i - idxLow;
@@ -1309,7 +1440,7 @@
                 }
 
                 const x = getX(i);
-                const y = getY(val); // Uses precise pMin/pMax
+                const y = getY(val); 
 
                 if(!started) {
                     ctx.moveTo(x, y);
@@ -1323,15 +1454,22 @@
             };
 
             for(let i = loopStart; i <= endIdx; i++) processPoint(i, false);
-            // Draw up to exact float index
             processPoint(currentIdx, true);
             
             if(started) {
                 ctx.lineTo(lastX, lastY);
                 ctx.stroke();
-                if(mode !== 'Total') {
+
+                // Draw Dot (Circle) at tip if NOT Background Graph
+                if(!isBackground) {
                     ctx.fillStyle = colors[name];
-                    ctx.beginPath(); ctx.arc(lastX, lastY, lineWidth*1.5, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); 
+                    ctx.arc(lastX, lastY, lineWidth * 1.5, 0, Math.PI * 2); 
+                    ctx.fill();
+                    // Optional white border for dot visibility
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
                 }
             }
         }
@@ -1516,6 +1654,7 @@
         resultScreen.style.opacity = 0;
         setTimeout(() => resultScreen.style.display = 'none', 300);
         animationTime = 0;
+        currentDisplayMax = itemsList.length > 0 ? 100 : 100;
         isPlaying = true;
         playPauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
         lastFrameTime = performance.now();
@@ -1599,31 +1738,49 @@
                 bar.appendChild(img);
             }
             
+            // Inner Label
             const labelIn = document.createElement('div'); labelIn.className = 'bar-label-in';
-            const labelOut = document.createElement('div'); labelOut.className = 'label-popout';
+            labelIn.textContent = name;
             
-            // Value Container structure
-            const vals = document.createElement('div'); vals.className = 'bar-values';
+            // Value Container structure - REORDERED: Main -> Gain -> Gap
+            const valsContainer = document.createElement('div'); valsContainer.className = 'bar-values-container';
+            const valsCol = document.createElement('div'); valsCol.className = 'bar-values-col';
             
-            // Row 1: Main Value + Diff
-            const row1 = document.createElement('div'); row1.className = 'val-row-main';
+            // Row 1: Main Value (Total)
             const mVal = document.createElement('div'); mVal.className = 'val-main';
-            const sVal = document.createElement('div'); sVal.className = 'val-diff'; 
-            row1.append(mVal, sVal);
 
-            // Row 2: Gap Info
-            const row2 = document.createElement('div'); row2.className = 'val-row-sub';
+            // Row 2: Gain
+            const sVal = document.createElement('div'); sVal.className = 'val-diff'; 
+
+            // Row 3: Gap Info
+            const rowGap = document.createElement('div'); rowGap.className = 'val-row';
             const gLabel = document.createElement('span'); gLabel.className = 'val-gap-label'; gLabel.textContent = "Gap:";
             const gVal = document.createElement('div'); gVal.className = 'val-gap'; 
             const gdVal = document.createElement('div'); gdVal.className = 'val-gap-diff';
-            row2.append(gLabel, gVal, gdVal);
+            rowGap.append(gLabel, gVal, gdVal);
 
-            vals.append(row1, row2);
-            bar.append(labelIn, vals); 
-            wrapper.append(bar, labelOut); // labelOut is sibling to bar for overflow
+            // Append columns
+            valsCol.append(mVal, sVal, rowGap);
+            valsContainer.appendChild(valsCol);
+
+            // Popout Label (Outer with Image/Style)
+            const popout = document.createElement('div'); popout.className = 'label-popout';
+            if(config.showIcons && itemImages[name]) {
+                const pImg = document.createElement('img'); pImg.className = 'popout-img'; pImg.src = itemImages[name];
+                popout.appendChild(pImg);
+            }
+            const pTxt = document.createElement('span'); pTxt.textContent = name;
+            popout.appendChild(pTxt);
+            // Add popout to valsContainer (right of values)
+            valsContainer.appendChild(popout);
+            
+            bar.appendChild(labelIn);
+            bar.appendChild(valsContainer); // Container inside bar (absolute position)
+            
+            wrapper.append(bar);
             row.append(wrapper); barsContainer.append(row);
             
-            barElements[name] = { row, bar, labelIn, labelOut, mVal, sVal, gRow: row2, gVal, gdVal };
+            barElements[name] = { row, bar, labelIn, popout, mVal, sVal, gRow: rowGap, gVal, gdVal };
         });
     }
 
@@ -1643,7 +1800,7 @@
         isGapMode = !isGapMode;
         modeBtn.innerHTML = isGapMode ? '<i class="bi bi-distribute-vertical"></i> Gapモード' : '<i class="bi bi-list-ol"></i> 通常モード';
         modeBtn.className = isGapMode ? 'icon-btn active' : 'icon-btn';
-        bottomGraphTitle.innerHTML = isGapMode ? `<i class="bi bi-distribute-vertical"></i> 1位との差 (Gap)` : `<i class="bi bi-graph-up"></i> ${config.bottomTitle}`;
+        updateGapTitles();
         renderFrame();
     });
 
@@ -1668,22 +1825,25 @@
         return sign + Math.floor(abs).toLocaleString();
     }
     
+    // Axis rendering with smoothed MaxVal input
     function renderAxisNice(maxVal) {
         axisContainer.innerHTML = '';
         const ticks = 5;
+        // Calculation based on current SMOOTH maxVal creates moving lines effect
         const roughStep = maxVal / (ticks - 1);
         const mag = Math.pow(10, Math.floor(Math.log10(roughStep)));
         let niceStep = (roughStep/mag < 1.5) ? 1 : (roughStep/mag < 3) ? 2 : (roughStep/mag < 7) ? 5 : 10;
         const step = niceStep * mag;
         
-        // Always include 0
-        for(let v=0; v <= maxVal; v+=step) {
+        // Ensure we cover enough range slightly beyond maxVal if moving fast
+        for(let v=0; v <= maxVal * 1.1; v+=step) {
             const pct = (v/maxVal)*100;
-            // Limit to 100% to avoid overflow
             if(pct > 100) break;
             
             const l = document.createElement('div'); l.className='grid-line'; l.style.left=pct+'%';
             const t = document.createElement('div'); t.className='axis-label'; t.textContent=formatNum(v); t.style.left=pct+'%';
+            // Use data-val for selective styling if needed
+            t.setAttribute('data-val', v);
             axisContainer.append(l, t);
         }
     }
