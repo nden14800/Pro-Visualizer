@@ -360,13 +360,13 @@
         height: 90px;
         background: #0a0a0a;
         display: flex; align-items: center;
-        padding: 0 30px; gap: 25px;
+        padding: 0 20px; gap: 15px; /* Gapを少し狭める */
         border-top: 1px solid #222;
         z-index: 100;
         box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
     }
 
-    .control-group { display: flex; flex-direction: column; justify-content: center; color: #888; font-size: 11px; font-weight: bold; min-width: 100px; }
+    .control-group { display: flex; flex-direction: column; justify-content: center; color: #888; font-size: 11px; font-weight: bold; min-width: 70px; }
     .control-row { display: flex; justify-content: space-between; width: 100%; margin-bottom: 6px; }
 
     input[type=range] {
@@ -390,12 +390,13 @@
     input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
     input[type=range]:active::-webkit-slider-thumb { transform: scale(1.1); background: #fff; }
 
-    #seek-slider { width: 250px; }
-    #speed-slider { width: 180px; }
+    /* 重なり防止のために幅を縮小 */
+    #seek-slider { width: 140px; }
+    #speed-slider { width: 100px; }
 
     .icon-btn {
         background: #222; color: #fff;
-        border: 1px solid #333; padding: 0 20px;
+        border: 1px solid #333; padding: 0 12px;
         height: 40px;
         border-radius: 8px; font-size: 13px; font-weight: 700;
         cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -407,21 +408,15 @@
     #play-pause-btn {
         width: 60px; height: 60px; border-radius: 50%;
         font-size: 32px; background: #222; color: var(--color-green);
-        border: 2px solid #333; margin-right: 10px;
+        border: 2px solid #333; margin-right: 5px;
         padding: 0; display: flex; align-items: center; justify-content: center;
         transition: all 0.2s;
+        flex-shrink: 0;
     }
     #play-pause-btn:hover { background: #2a2a2a; border-color: var(--color-green); transform: scale(1.05); }
     #play-pause-btn:active { transform: scale(0.95); }
     
-    #change-file-btn {
-        width: 40px; height: 40px; border-radius: 8px;
-        font-size: 20px; background: #222; color: #fff;
-        border: 1px solid #333; margin-left: 0;
-        padding: 0; display: flex; align-items: center; justify-content: center;
-        transition: all 0.2s; cursor: pointer;
-    }
-    #change-file-btn:hover { background: #333; color: var(--color-green); }
+    .file-btn-group { display: flex; gap: 8px; }
 
     .separator { width: 1px; height: 40px; background: #333; }
 
@@ -473,7 +468,7 @@
                 
                 <!-- Gap Target Selection -->
                 <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
-                    <span class="setting-label"><i class="bi bi-crosshair"></i> Gap Target (0 line will be hidden)</span>
+                    <span class="setting-label"><i class="bi bi-crosshair"></i> Initial Gap Target</span>
                     <select id="config-gap-target" class="select-input">
                         <option value="Leader">Leader (Auto)</option>
                     </select>
@@ -637,7 +632,12 @@
     </div>
 
     <div id="controls-bar">
-        <button id="change-file-btn" title="Open New File"><i class="bi bi-folder2-open"></i></button>
+        <div class="file-btn-group">
+            <button id="change-file-btn" class="icon-btn" title="Open New File"><i class="bi bi-folder2-open"></i></button>
+            <button id="open-settings-btn" class="icon-btn" title="Settings"><i class="bi bi-gear-fill"></i></button>
+            <button id="restart-btn" class="icon-btn" title="Restart"><i class="bi bi-skip-start-fill"></i></button>
+        </div>
+        
         <button id="play-pause-btn"><i class="bi bi-play-fill"></i></button>
         
         <div class="control-group" style="flex:1;">
@@ -659,8 +659,16 @@
         </div>
 
         <div class="separator"></div>
+        
+        <!-- Dynamic Target Select -->
+        <div class="control-group" style="min-width: 100px;">
+             <div class="control-row"><span>TARGET</span></div>
+             <select id="dynamic-gap-target" class="select-input" style="height:30px; padding:0 5px; font-size:12px;">
+                 <option value="Leader">Leader</option>
+             </select>
+        </div>
 
-        <div class="control-group" style="min-width:120px;">
+        <div class="control-group" style="min-width:110px;">
             <div class="control-row"><span>MODE</span></div>
             <button id="mode-btn" class="icon-btn" style="width:100%;">
                 <i class="bi bi-list-ol"></i> Total Mode
@@ -672,7 +680,9 @@
     // --- Configuration & Constants ---
     let TOTAL_DURATION_BASE = 300000; 
     let HISTORY_WINDOW = 100; 
-    const SCALE_SMOOTHING = 0.03; 
+    
+    // スムージング係数を微調整 (0.1) - アニメーションが先行しすぎないように遅らせる
+    const SCALE_SMOOTHING = 0.1; 
 
     // User Config
     const config = {
@@ -698,12 +708,16 @@
     const fileNameDisplay = document.getElementById('file-name');
     const dispTitle = document.getElementById('disp-title');
     const tooltip = document.getElementById('tooltip');
+    
     const changeFileBtn = document.getElementById('change-file-btn');
     const changeFileResBtn = document.getElementById('change-file-result-btn');
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    const restartBtn = document.getElementById('restart-btn');
 
     const confTitle = document.getElementById('config-title');
     const confBottomTitle = document.getElementById('config-bottom-title');
     const confGapTarget = document.getElementById('config-gap-target');
+    const dynamicGapTarget = document.getElementById('dynamic-gap-target');
     const confTotalLabel = document.getElementById('config-total-label');
     const confGapBtn = document.getElementById('config-gap-btn');
     const confResult = document.getElementById('config-result');
@@ -823,6 +837,7 @@
     });
 
     function updateGapTargetOptions() {
+        // 設定画面のプルダウン更新
         confGapTarget.innerHTML = '<option value="Leader">Leader (Auto)</option>';
         itemsList.forEach(item => {
             const opt = document.createElement('option');
@@ -830,7 +845,57 @@
             opt.textContent = item;
             confGapTarget.appendChild(opt);
         });
+
+        // プレイ画面の動的プルダウン更新
+        dynamicGapTarget.innerHTML = '<option value="Leader">Leader (Auto)</option>';
+        itemsList.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item;
+            opt.textContent = item;
+            dynamicGapTarget.appendChild(opt);
+        });
+
+        // 現在の値を選択
+        dynamicGapTarget.value = config.gapTarget;
     }
+
+    // --- Dynamic Target Change ---
+    confGapTarget.addEventListener('change', () => {
+        config.gapTarget = confGapTarget.value;
+        dynamicGapTarget.value = confGapTarget.value;
+    });
+
+    dynamicGapTarget.addEventListener('change', () => {
+        config.gapTarget = dynamicGapTarget.value;
+        confGapTarget.value = dynamicGapTarget.value; // 設定画面の方も同期
+        renderFrame(); // 即座に反映
+    });
+
+    // --- Settings & Restart Control ---
+    openSettingsBtn.addEventListener('click', () => {
+        // 一時停止して設定画面を開く
+        isPlaying = false;
+        playPauseBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+        settingsScreen.style.display = 'flex';
+        setTimeout(() => settingsScreen.style.opacity = 1, 10);
+        // 設定画面を開くときにリストが空でないか確認して再構築
+        if(itemsList.length > 0) {
+            updateGapTargetOptions();
+            confGapTarget.value = config.gapTarget;
+        }
+    });
+
+    restartBtn.addEventListener('click', () => {
+        // リスタート
+        animationTime = 0;
+        isPlaying = true;
+        playPauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+        lastFrameTime = performance.now();
+        seekSlider.value = 0;
+        seekVal.textContent = "0%";
+        if(animationFrameId) cancelAnimationFrame(animationFrameId);
+        animationFrameId = requestAnimationFrame(gameLoop);
+    });
 
     // Inputs Sync
     confDurSlider.addEventListener('input', () => { confDurInput.value = confDurSlider.value; });
@@ -861,6 +926,9 @@
         config.showTotal = confTotal.checked;
         config.showIcons = confIcons.checked;
 
+        // Sync dynamic select
+        dynamicGapTarget.value = config.gapTarget;
+
         const durVal = parseInt(confDurInput.value);
         if(durVal && durVal > 0) TOTAL_DURATION_BASE = durVal * 1000;
 
@@ -882,6 +950,7 @@
         resizeAllCanvases();
         createDOMBars();
         
+        // Start from beginning when clicking Start from settings
         animationTime = 0;
         seekSlider.value = 0;
         seekVal.textContent = "0%";
@@ -941,7 +1010,6 @@
 
     // --- Text Resizing Logic ---
     function updateScaledText(element, num, isGain) {
-        // 数値の整形
         let str = "";
         if (isGain) {
             str = (num >= 0 ? '+' : '') + Math.floor(num).toLocaleString();
@@ -951,16 +1019,13 @@
         
         element.textContent = str;
         
-        // 文字数に応じたフォントサイズ調整 (ガタつき防止)
         const len = str.length;
         if (isGain) {
-            // Gain: default 18px
             if (len > 12) element.style.fontSize = '12px';
             else if (len > 9) element.style.fontSize = '14px';
             else if (len > 7) element.style.fontSize = '16px';
             else element.style.fontSize = '18px';
         } else {
-            // Main: default 26px
             if (len > 12) element.style.fontSize = '16px';
             else if (len > 10) element.style.fontSize = '20px';
             else if (len > 8) element.style.fontSize = '22px';
@@ -983,7 +1048,6 @@
         let items = [];
         let totalVal = 0;
         
-        // Helper to get val for specific item
         const getVal = (name) => lerp(dLow.values[name], dHigh.values[name], ratio);
 
         itemsList.forEach(name => {
@@ -1002,9 +1066,8 @@
         // Determine Target Value for Gap
         let gapTargetVal = 0;
         if (config.gapTarget === 'Leader') {
-            gapTargetVal = items[0].val;
+            gapTargetVal = items[0].val; // Current Leader Value
         } else {
-            // If target is specific item
             gapTargetVal = getVal(config.gapTarget);
         }
 
@@ -1040,11 +1103,10 @@
 
             if(isGapMode) {
                 let gap = gapTargetVal - item.val;
-                // Gap logic: if I am the target or leader(in leader mode), gap is 0
                 
-                // Display logic
+                // Gap logic display
+                // If it is effectively 0 (the target/leader)
                 if (Math.abs(gap) < 0.1) {
-                    // Leader or Target itself
                     if (config.gapTarget === 'Leader') {
                         el.gVal.innerHTML = '<i class="bi bi-trophy-fill"></i> Leader';
                         el.gVal.style.color = 'var(--color-green)';
@@ -1067,7 +1129,6 @@
         const dObj = new Date(lerp(dLow.date.getTime(), dHigh.date.getTime(), ratio));
         dateDisplay.textContent = formatDate(dObj);
         
-        // Combined Total stability & scaling
         let totalGain = 0;
         items.forEach(i => totalGain += i.diff);
         
@@ -1088,7 +1149,7 @@
                 ctx: dailyCtx, canvas: dailyCanvas, data: processedData, items: itemsList,
                 currentIdx: currentFloatIdx, windowSize: HISTORY_WINDOW,
                 mode: isGapMode ? 'Gap' : 'Diff', scaleState: bottomScale, lineWidth: 3, opacity: 1.0,
-                drawXAxis: true // 日付表示を有効化
+                drawXAxis: true
             });
         }
     }
@@ -1108,6 +1169,39 @@
         const loopStart = Math.max(0, startIdx - 2); 
         const calcEnd = Math.min(totalLen - 1, endIdx + 5); 
 
+        // Gap Mode Auto (Leader) - Show only the 2nd place (Chaser) to fix scale
+        let activeItems = items;
+        if (mode === 'Gap' && config.gapTarget === 'Leader') {
+            const row = data[Math.floor(currentIdx)]; 
+            if(row) {
+                // Find Leader value
+                let leaderVal = -Infinity;
+                items.forEach(name => {
+                    const v = row.values[name];
+                    if(v > leaderVal) leaderVal = v;
+                });
+                
+                // Find the closest Chaser (2nd place or max item that is not leader)
+                // Since Leader Gap is 0, others are negative. We want the largest negative value (closest to 0).
+                let chaserName = null;
+                let chaserVal = -Infinity;
+                
+                items.forEach(name => {
+                    const v = row.values[name];
+                    // Pick logic: If v < leaderVal (strictly), it is a chaser.
+                    if (v < leaderVal && v > chaserVal) {
+                        chaserVal = v;
+                        chaserName = name;
+                    }
+                });
+                
+                // If found, restrict items to this one line so scale adapts to it
+                if (chaserName) {
+                    activeItems = [chaserName];
+                }
+            }
+        }
+
         const getValue = (idx, name) => {
             idx = Math.max(0, Math.min(totalLen - 1, idx));
             const row = data[idx];
@@ -1118,6 +1212,8 @@
             let targetVal = 0;
             if (config.gapTarget === 'Leader') {
                 let leader = -Infinity;
+                // For logic consistency, targetVal is always current Leader value
+                // Note: items here is full items list for leader calc
                 for(let m=0; m<items.length; m++) {
                     const v = row.values[items[m]];
                     if(v > leader) leader = v;
@@ -1131,21 +1227,17 @@
             return items.length === 1 ? 0 : val;
         };
 
-        // SCALE CALCULATION
+        // SCALE CALCULATION (Use activeItems)
         let targetMin = Infinity;
         let targetMax = -Infinity;
         
         for(let i = loopStart; i <= calcEnd; i++) {
-            for(let k=0; k<items.length; k++) {
-                const name = items[k];
-                // Gap Mode Exclusion Logic for 0-line
-                // If specific target is selected, exclude the target itself (always 0)
+            for(let k=0; k<activeItems.length; k++) {
+                const name = activeItems[k];
+                // 特定ターゲット指定時の除外
                 if (mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) continue;
 
                 const val = getValue(i, name);
-                
-                // If Leader mode, we can't easily exclude the dynamic leader line, but usually it sits at 0.
-                // If user wants to see only non-zero lines, they should select a specific target.
                 
                 if (val < targetMin) targetMin = val;
                 if (val > targetMax) targetMax = val;
@@ -1168,11 +1260,11 @@
         const yMax = scaleState.max;
         const yRange = yMax - yMin || 1;
 
-        // PADDING logic (Increased for circular dots and text)
+        // PADDING logic
         const paddingTop = 15;
-        const paddingBottom = drawXAxis ? 30 : 15; // Bottom needs more space for dates
+        const paddingBottom = drawXAxis ? 30 : 15;
         const paddingLeft = 0;
-        const paddingRight = 10; // Right side needs space for last dot radius
+        const paddingRight = 10;
         
         const drawH = h - (paddingTop + paddingBottom);
         const drawW = w - (paddingLeft + paddingRight);
@@ -1204,31 +1296,25 @@
         const getX = (valIdx) => paddingLeft + (valIdx - windowStart) / windowSize * drawW;
         const getY = (val) => paddingTop + drawH - ((val - yMin) / yRange) * drawH;
 
-        // X-AXIS DATES (Month Separators)
+        // X-AXIS DATES
         if(drawXAxis) {
             ctx.textAlign = 'center';
-            // Iterate visible range indices
             const iStart = Math.ceil(windowStart);
             const iEnd = Math.floor(endIdx);
             
             for(let i = iStart; i <= iEnd; i++) {
                 if(i < 0 || i >= totalLen) continue;
                 const d = data[i].date;
-                // If it's the 1st of the month
                 if(d.getDate() === 1) {
                     const x = getX(i);
-                    // Draw vertical line hint
                     ctx.beginPath(); 
                     ctx.moveTo(x, paddingTop); 
                     ctx.lineTo(x, h - paddingBottom); 
                     ctx.strokeStyle = 'rgba(255,255,255,0.1)'; 
                     ctx.stroke();
                     
-                    // Draw Text
                     ctx.fillStyle = '#888';
                     const mNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                    
-                    // Format: 13-Jan-18 style (DD-Mon-YY)
                     const dd = String(d.getDate()).padStart(2, '0');
                     const mm = mNames[d.getMonth()];
                     const yy = String(d.getFullYear()).slice(-2);
@@ -1236,13 +1322,14 @@
                     ctx.fillText(`${dd}-${mm}-${yy}`, x, h - 10);
                 }
             }
-            ctx.textAlign = 'left'; // Reset
+            ctx.textAlign = 'left'; 
         }
 
-        // LINES
-        for(let k=0; k<items.length; k++) {
-            const name = items[k];
-            // Exclusion logic for specific target (0 line removal)
+        // LINES (Draw activeItems)
+        for(let k=0; k<activeItems.length; k++) {
+            const name = activeItems[k];
+            
+            // Specific logic: If this item IS the target in fixed mode, skip.
             if (mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) continue;
 
             ctx.beginPath();
@@ -1302,10 +1389,8 @@
             this.dataPoints = [];
         }
 
-        // Generic Interaction Handler
         handleInteraction(x, y) {
             const rect = this.canvas.getBoundingClientRect();
-            // Check boundaries
             if(x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
                 const len = this.dataPoints.length;
                 const ratio = (x - rect.left) / rect.width;
@@ -1330,7 +1415,6 @@
                 const row = data[i];
                 let rowObj = { date: row.date, values: {} };
                 
-                // Determine Leader/Target for this row
                 let targetVal = 0;
                 if (config.gapTarget === 'Leader') {
                     let leader = -Infinity;
@@ -1348,7 +1432,6 @@
                     
                     rowObj.values[name] = v;
                     
-                    // Exclusion for min/max calc (Scale optimization)
                     if (this.mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) return;
 
                     if(v < minVal) minVal = v;
@@ -1382,15 +1465,11 @@
             });
             tooltip.innerHTML = html;
 
-            // Auto-position logic
             const ttRect = tooltip.getBoundingClientRect();
             const winW = window.innerWidth;
             
-            // Default Right
             let finalLeft = globalX + 15;
-            // Check if right edge overflows
             if (finalLeft + ttRect.width > winW - 10) {
-                // Move to Left
                 finalLeft = globalX - ttRect.width - 15;
             }
             
@@ -1423,7 +1502,6 @@
             }
 
             itemsList.forEach(name => {
-                // Exclusion logic
                 if (this.mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) return;
 
                 ctx.beginPath(); 
@@ -1481,7 +1559,6 @@
         });
     }
 
-    // Interaction Events for Result Screen
     function handleResultInteraction(clientX, clientY) {
         if(resultScreen.style.display === 'none') return;
         let anyHover = false;
@@ -1495,7 +1572,6 @@
         handleResultInteraction(e.clientX, e.clientY);
     });
 
-    // Touch Support
     window.addEventListener('touchstart', (e) => {
         if(e.touches.length > 0) {
             handleResultInteraction(e.touches[0].clientX, e.touches[0].clientY);
@@ -1516,6 +1592,8 @@
         isPlaying = true;
         playPauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
         lastFrameTime = performance.now();
+        seekSlider.value = 0;
+        seekVal.textContent = "0%";
         if(animationFrameId) cancelAnimationFrame(animationFrameId);
         animationFrameId = requestAnimationFrame(gameLoop);
     });
