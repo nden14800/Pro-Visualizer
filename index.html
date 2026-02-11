@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- iPad/iPhone対応 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Pro Visualizer: Ultimate Edition</title>
+<title>Pro Visualizer: Ultimate JP</title>
 <!-- Bootstrap Icons CDN -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
@@ -17,8 +17,9 @@
         --color-text: #ffffff;
         --color-green: #00e676;
         --color-red: #ff5252;
+        --color-blue: #2979ff;
         --color-sub: #888;
-        --font-main: 'Inter', sans-serif;
+        --font-main: 'Inter', sans-serif; /* 日本語フォントはOS標準にフォールバック */
     }
 
     * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -26,14 +27,14 @@
     body {
         background-color: var(--color-bg);
         color: var(--color-text);
-        font-family: var(--font-main);
+        font-family: var(--font-main), "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
         margin: 0;
         overflow: hidden;
         width: 100vw;
         height: 100vh;
         display: flex;
         flex-direction: column;
-        /* 数字のガタつき防止（全体適用） */
+        /* 数字のガタつき防止 */
         font-variant-numeric: tabular-nums;
     }
 
@@ -59,7 +60,7 @@
         border: 1px solid var(--color-panel-border);
         box-shadow: 0 20px 60px rgba(0,0,0,0.6);
         width: 90%;
-        max-width: 500px;
+        max-width: 600px;
         display: flex;
         flex-direction: column;
         gap: 20px;
@@ -109,11 +110,15 @@
     /* --- Settings Screen --- */
     .settings-grid {
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr; /* 2列に変更 */
         gap: 15px;
         text-align: left;
         width: 100%;
     }
+    .settings-full-width {
+        grid-column: 1 / -1;
+    }
+
     .setting-item {
         background: #222;
         padding: 12px 15px;
@@ -122,7 +127,7 @@
         justify-content: space-between;
         align-items: center;
     }
-    .setting-label { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .setting-label { font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px; color:#ddd; }
     
     .text-input, .select-input {
         background: #111; border: 1px solid #444;
@@ -133,7 +138,7 @@
 
     /* Toggle Switch */
     .toggle-switch {
-        position: relative; width: 46px; height: 24px;
+        position: relative; width: 46px; height: 24px; flex-shrink: 0;
     }
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
     .slider {
@@ -203,8 +208,7 @@
         display: none;
         font-size: 12px;
         font-family: var(--font-main);
-        font-variant-numeric: tabular-nums; /* ツールチップも等幅数字 */
-        /* Z-Index higher than result-screen (2000) */
+        font-variant-numeric: tabular-nums;
         z-index: 9999;
         box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         white-space: nowrap;
@@ -230,16 +234,37 @@
         text-align: right; letter-spacing: -1px; 
     }
 
-    /* Adjusted chart area for full width */
-    #chart-area { position: relative; flex: 2; margin: 10px 10px 0 10px; overflow: hidden; }
+    /* Chart Area */
+    #chart-area { 
+        position: relative; flex: 2; 
+        margin: 10px 10px 0 10px; 
+        /* Axis表示のために上部にスペースを確保 */
+        padding-top: 30px; 
+        overflow: hidden; 
+    }
     
     #bg-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.5; }
-    #axis-container { position: absolute; top: -25px; left: 0; width: 100%; height: 25px; z-index: 2; }
-    .grid-line { position: absolute; top: 0; bottom: -100vh; width: 1px; background: rgba(255,255,255,0.08); z-index: 1; }
-    .axis-label { position: absolute; top: -8px; transform: translateX(-50%); font-size: 12px; color: #666; font-weight: 700; }
+    
+    /* Axisを可視領域内に配置 */
+    #axis-container { 
+        position: absolute; top: 0; left: 0; width: 100%; height: 30px; z-index: 2; 
+        pointer-events: none;
+    }
+    .grid-line { position: absolute; top: 30px; bottom: -100vh; width: 1px; background: rgba(255,255,255,0.08); z-index: 1; }
+    .axis-label { 
+        position: absolute; top: 5px; transform: translateX(-50%); 
+        font-size: 12px; color: #666; font-weight: 700; 
+    }
 
-    #bars-container { position: relative; width: 100%; height: 100%; z-index: 5; padding-right: 120px; /* 右側の文字切れ防止用にパディング確保 */ }
-    .bar-row { position: absolute; left: 0; width: 100%; height: 60px; display: flex; align-items: center; will-change: transform; }
+    /* バーのコンテナ：見切れ防止のため右パディングを増やす */
+    #bars-container { 
+        position: relative; width: 100%; height: 100%; z-index: 5; 
+        padding-right: 220px; /* 値が見切れないように十分な余白 */
+    }
+    .bar-row { 
+        position: absolute; left: 0; width: 100%; height: 60px; display: flex; align-items: center; 
+        will-change: transform; 
+    }
     
     .bar-wrapper { flex: 1; height: 100%; position: relative; display: flex; align-items: center; }
     
@@ -256,7 +281,6 @@
         overflow: visible; 
     }
 
-    /* Images */
     .bar-img {
         position: absolute; left: -2px; top: 50%; transform: translateY(-50%);
         width: 36px; height: 36px; border-radius: 50%;
@@ -265,15 +289,14 @@
         display: none;
     }
 
-    /* Labels */
     .bar-label-in {
         font-weight: 900; font-size: 20px; 
         white-space: nowrap; z-index: 4;
         text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         transition: color 0.2s;
+        margin-right: auto; padding-left: 10px; /* 左寄せに変更 */
     }
     
-    /* Pop-out label style */
     .label-popout {
         position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
         margin-left: 10px;
@@ -281,91 +304,61 @@
         color: #fff !important; font-size: 14px;
         display: flex; align-items: center;
         white-space: nowrap;
+        z-index: 10;
     }
 
+    /* Updated Value Layout */
     .bar-values {
-        position: absolute; left: 100%; margin-left: 14px;
+        position: absolute; left: 100%; margin-left: 12px;
         display: flex; flex-direction: column; justify-content: center;
         line-height: 1.1; white-space: nowrap;
+        align-items: flex-start; /* 左揃え */
     }
-    .val-main { 
-        font-size: 22px; font-weight: 900; color: #fff; letter-spacing: -0.5px; 
-        font-variant-numeric: tabular-nums;
-    }
-    .val-sub-group { display: flex; gap: 10px; align-items: baseline; }
-    .val-sub { 
-        font-size: 15px; font-weight: 700; color: var(--color-green); 
-        font-variant-numeric: tabular-nums;
-    }
-    .val-sub.negative { color: var(--color-red); }
-    .val-gap { 
-        font-size: 15px; font-weight: 700; color: var(--color-sub); 
-        font-variant-numeric: tabular-nums;
-    }
+    
+    .val-row-main { display: flex; align-items: baseline; gap: 8px; }
+    .val-row-sub  { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }
 
-    /* Bottom Info & Graphs - Adjusted Height */
+    /* Font sizes managed by JS dynamically */
+    .val-main { font-weight: 900; color: #fff; letter-spacing: -0.5px; transition: font-size 0.1s; }
+    .val-diff { font-weight: 700; color: var(--color-green); transition: font-size 0.1s; }
+    .val-diff.negative { color: var(--color-red); }
+
+    .val-gap-label { font-size: 10px; color: #666; font-weight: 700; margin-right: 2px; }
+    .val-gap { font-weight: 700; color: #ccc; transition: font-size 0.1s; }
+    .val-gap-diff { font-weight: 700; color: var(--color-sub); transition: font-size 0.1s; }
+    .val-gap-diff.positive { color: var(--color-red); } /* Gapが増える＝悪い */
+    .val-gap-diff.negative { color: var(--color-blue); } /* Gapが減る＝良い */
+
+    /* Bottom Info */
     .bottom-section {
-        flex: none; /* Do not grow */
-        height: 220px; /* Moderate size */
-        display: flex; gap: 15px;
+        flex: none; height: 220px; display: flex; gap: 15px;
         background: rgba(255,255,255,0.02);
-        border-radius: 12px; 
-        /* Align margin with chart-area */
-        margin: 10px 10px 0 10px; 
-        padding: 10px; 
-        border: 1px solid #222;
+        border-radius: 12px; margin: 10px 10px 0 10px; 
+        padding: 10px; border: 1px solid #222;
         position: relative;
     }
-    .daily-graph-box { 
-        flex: 2.5; 
-        position: relative; display: flex; flex-direction: column; 
-    }
-    .graph-header { 
-        font-size: 14px; color: #888; font-weight: bold; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; 
-    }
+    .daily-graph-box { flex: 2.5; position: relative; display: flex; flex-direction: column; }
+    .graph-header { font-size: 14px; color: #888; font-weight: bold; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
     #daily-canvas { flex: 1; width: 100%; }
     
     .combined-box { 
-        flex: 1; 
-        display: flex; flex-direction: column; justify-content: center; align-items: flex-end; text-align: right; 
-        min-width: 0; /* Flexbox item overflow prevention */
-        overflow: hidden;
+        flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; text-align: right; 
+        min-width: 0; overflow: hidden;
     }
-    .stat-label { 
-        font-size: 12px; color: #666; font-weight: 700; letter-spacing: 0.5px; 
-    }
-    
-    .total-group { 
-        display: flex; align-items: baseline; gap: 10px; 
-        width: 100%; justify-content: flex-end; /* Stability for values */
-    }
-    .stat-val { 
-        /* default font size, handled by JS */
-        font-size: 26px; font-weight: 900; color: #fff; letter-spacing: -0.5px;
-        font-variant-numeric: tabular-nums;
-        white-space: nowrap;
-        transition: font-size 0.1s;
-    }
-    .stat-gain { 
-        /* default font size, handled by JS */
-        font-size: 18px; font-weight: 700; color: var(--color-green); 
-        font-variant-numeric: tabular-nums;
-        white-space: nowrap;
-        transition: font-size 0.1s;
-    }
+    .stat-label { font-size: 12px; color: #666; font-weight: 700; letter-spacing: 0.5px; }
+    .total-group { display: flex; align-items: baseline; gap: 10px; width: 100%; justify-content: flex-end; }
+    .stat-val { font-weight: 900; color: #fff; letter-spacing: -0.5px; transition: font-size 0.1s; }
+    .stat-gain { font-weight: 700; color: var(--color-green); transition: font-size 0.1s; }
     .stat-gain.negative { color: var(--color-red); }
 
-    /* --- Controls Bar --- */
+    /* Controls */
     #controls-bar {
-        height: 90px;
-        background: #0a0a0a;
+        height: 90px; background: #0a0a0a;
         display: flex; align-items: center;
-        padding: 0 20px; gap: 15px; /* Gapを少し狭める */
+        padding: 0 20px; gap: 15px;
         border-top: 1px solid #222;
-        z-index: 100;
-        box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+        z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
     }
-
     .control-group { display: flex; flex-direction: column; justify-content: center; color: #888; font-size: 11px; font-weight: bold; min-width: 70px; }
     .control-row { display: flex; justify-content: space-between; width: 100%; margin-bottom: 6px; }
 
@@ -376,29 +369,23 @@
     input[type=range]:focus { outline: none; }
     input[type=range]::-webkit-slider-runnable-track {
         width: 100%; height: 8px; cursor: pointer;
-        background: #333; border-radius: 4px;
-        transition: 0.2s;
+        background: #333; border-radius: 4px; transition: 0.2s;
     }
     input[type=range]::-webkit-slider-thumb {
         height: 20px; width: 20px; border-radius: 50%;
         background: var(--color-green); cursor: pointer;
-        -webkit-appearance: none;
-        margin-top: -6px; 
-        box-shadow: 0 0 10px rgba(0,230,118,0.5);
-        transition: transform 0.1s;
+        -webkit-appearance: none; margin-top: -6px; 
+        box-shadow: 0 0 10px rgba(0,230,118,0.5); transition: transform 0.1s;
     }
     input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
-    input[type=range]:active::-webkit-slider-thumb { transform: scale(1.1); background: #fff; }
-
-    /* 重なり防止のために幅を縮小 */
+    
     #seek-slider { width: 140px; }
     #speed-slider { width: 100px; }
 
     .icon-btn {
         background: #222; color: #fff;
         border: 1px solid #333; padding: 0 12px;
-        height: 40px;
-        border-radius: 8px; font-size: 13px; font-weight: 700;
+        height: 40px; border-radius: 8px; font-size: 13px; font-weight: 700;
         cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
         transition: 0.2s;
     }
@@ -410,14 +397,11 @@
         font-size: 32px; background: #222; color: var(--color-green);
         border: 2px solid #333; margin-right: 5px;
         padding: 0; display: flex; align-items: center; justify-content: center;
-        transition: all 0.2s;
-        flex-shrink: 0;
+        transition: all 0.2s; flex-shrink: 0;
     }
     #play-pause-btn:hover { background: #2a2a2a; border-color: var(--color-green); transform: scale(1.05); }
-    #play-pause-btn:active { transform: scale(0.95); }
     
     .file-btn-group { display: flex; gap: 8px; }
-
     .separator { width: 1px; height: 40px; background: #333; }
 
 </style>
@@ -432,18 +416,18 @@
         <div class="modal-box">
             <div>
                 <h2>Pro Visualizer</h2>
-                <p class="sub">Ultimate Edition</p>
+                <p class="sub">Ultimate Edition JP</p>
             </div>
             
             <label for="file-input" class="file-label">
-                <i class="bi bi-folder2-open" style="font-size:20px;"></i> Select CSV File
+                <i class="bi bi-folder2-open" style="font-size:20px;"></i> CSVファイルを選択
             </label>
             <input type="file" id="file-input" accept=".csv, text/csv, text/plain, */*">
             
             <div id="file-name" style="color:#fff; font-size:14px; font-weight:bold; min-height:20px;"></div>
             
             <button id="to-settings-btn" class="action-btn" style="display:none;">
-                Next <i class="bi bi-arrow-right-circle-fill"></i>
+                次へ <i class="bi bi-arrow-right-circle-fill"></i>
             </button>
         </div>
     </div>
@@ -451,59 +435,58 @@
     <!-- Settings Screen -->
     <div id="settings-screen" class="overlay-screen" style="display:none;">
         <div class="modal-box">
-            <h2><i class="bi bi-gear-fill"></i> Configuration</h2>
+            <h2><i class="bi bi-gear-fill"></i> 詳細設定</h2>
             
             <div class="settings-grid">
                 <!-- Title -->
-                <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
-                    <span class="setting-label"><i class="bi bi-type-h1"></i> Graph Title</span>
+                <div class="setting-item settings-full-width" style="flex-direction:column; align-items:flex-start; gap:10px;">
+                    <span class="setting-label"><i class="bi bi-type-h1"></i> タイトル</span>
                     <input type="text" id="config-title" class="text-input" value="Subscriber Race">
                 </div>
                 
                 <!-- Bottom Graph Label -->
                 <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
-                    <span class="setting-label"><i class="bi bi-tag"></i> Bottom Graph Label</span>
+                    <span class="setting-label"><i class="bi bi-tag"></i> 下部グラフのラベル</span>
                     <input type="text" id="config-bottom-title" class="text-input" value="Daily Gain">
-                </div>
-                
-                <!-- Gap Target Selection -->
-                <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
-                    <span class="setting-label"><i class="bi bi-crosshair"></i> Initial Gap Target</span>
-                    <select id="config-gap-target" class="select-input">
-                        <option value="Leader">Leader (Auto)</option>
-                    </select>
                 </div>
 
                 <!-- Total Value Label -->
                 <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
-                    <span class="setting-label"><i class="bi bi-tag"></i> Total Value Label</span>
+                    <span class="setting-label"><i class="bi bi-tag"></i> 合計値のラベル</span>
                     <input type="text" id="config-total-label" class="text-input" value="Combined Total">
+                </div>
+                
+                <!-- Gap Target Selection -->
+                <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
+                    <span class="setting-label"><i class="bi bi-crosshair"></i> Gap比較対象</span>
+                    <select id="config-gap-target" class="select-input">
+                        <option value="Leader">1位 (自動)</option>
+                    </select>
                 </div>
 
                 <!-- History Window -->
                 <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
-                    <span class="setting-label"><i class="bi bi-hourglass-split"></i> History Window (Days)</span>
+                    <span class="setting-label"><i class="bi bi-hourglass-split"></i> 履歴ウィンドウ (日数)</span>
                     <div style="display:flex; width:100%; gap:10px; align-items:center;">
-                        <input type="range" id="config-history-slider" min="1" max="1000" value="100" style="flex:1;">
-                        <input type="number" id="config-history-input" value="100" min="1" step="1" style="width:70px; text-align:right;" class="text-input">
+                        <input type="range" id="config-history-slider" min="10" max="500" value="100" style="flex:1;">
+                        <input type="number" id="config-history-input" value="100" min="10" step="1" style="width:70px; text-align:right;" class="text-input">
                     </div>
                 </div>
 
                 <!-- Duration Setting -->
                 <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:10px;">
-                    <span class="setting-label"><i class="bi bi-stopwatch"></i> Race Duration</span>
+                    <span class="setting-label"><i class="bi bi-stopwatch"></i> レース時間 (秒)</span>
                     <div style="display:flex; width:100%; gap:10px; align-items:center;">
                         <input type="range" id="config-duration-slider" min="60" max="600" step="10" value="300" style="flex:1;">
                         <div style="display:flex; align-items:center; gap:5px;">
                             <input type="number" id="config-duration-input" value="300" style="width:70px; text-align:right;" class="text-input">
-                            <span style="font-size:12px; color:#888;">sec</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Switches -->
                 <div class="setting-item">
-                    <span class="setting-label"><i class="bi bi-image"></i> Show Icons (if in CSV)</span>
+                    <span class="setting-label"><i class="bi bi-image"></i> アイコン表示</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="config-icons" checked>
                         <span class="slider"></span>
@@ -511,15 +494,15 @@
                 </div>
 
                 <div class="setting-item">
-                    <span class="setting-label"><i class="bi bi-distribute-vertical"></i> Enable Gap Mode Switch</span>
+                    <span class="setting-label"><i class="bi bi-distribute-vertical"></i> Gap詳細表示</span>
                     <label class="toggle-switch">
-                        <input type="checkbox" id="config-gap-btn" checked>
+                        <input type="checkbox" id="config-show-gap-detail" checked>
                         <span class="slider"></span>
                     </label>
                 </div>
                 
                 <div class="setting-item">
-                    <span class="setting-label"><i class="bi bi-clipboard-data"></i> Show Result Screen</span>
+                    <span class="setting-label"><i class="bi bi-clipboard-data"></i> 結果画面を表示</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="config-result" checked>
                         <span class="slider"></span>
@@ -527,7 +510,7 @@
                 </div>
 
                 <div class="setting-item">
-                    <span class="setting-label"><i class="bi bi-graph-up"></i> Show Bottom Graph</span>
+                    <span class="setting-label"><i class="bi bi-graph-up"></i> 下部グラフ表示</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="config-bottom-graph" checked>
                         <span class="slider"></span>
@@ -535,7 +518,7 @@
                 </div>
 
                 <div class="setting-item">
-                    <span class="setting-label"><i class="bi bi-bar-chart-steps"></i> Show Background Graph</span>
+                    <span class="setting-label"><i class="bi bi-bar-chart-steps"></i> 背景グラフ表示</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="config-bg-graph" checked>
                         <span class="slider"></span>
@@ -543,16 +526,23 @@
                 </div>
 
                 <div class="setting-item">
-                    <span class="setting-label"><i class="bi bi-calculator"></i> Show Combined Total</span>
+                    <span class="setting-label"><i class="bi bi-calculator"></i> 合計値を表示</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="config-total" checked>
                         <span class="slider"></span>
                     </label>
                 </div>
+
+                <div class="setting-item settings-full-width">
+                     <span class="setting-label"><i class="bi bi-palette"></i> グラフ線の太さ</span>
+                     <div style="display:flex; width:100%; gap:10px; align-items:center;">
+                        <input type="range" id="config-line-width" min="1" max="10" value="4" style="flex:1;">
+                     </div>
+                </div>
             </div>
 
             <button id="start-btn" class="action-btn">
-                <i class="bi bi-play-circle-fill"></i> Start Visualization
+                <i class="bi bi-play-circle-fill"></i> スタート
             </button>
         </div>
     </div>
@@ -562,35 +552,35 @@
         <div style="width:100%; max-width:1600px; display:flex; flex-direction:column; height:90%;">
             <div class="result-header">
                 <div style="display:flex; align-items:center;">
-                    <div class="result-title">Result Summary</div>
+                    <div class="result-title">最終結果</div>
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
                     <button id="change-file-result-btn" class="icon-btn">
-                        <i class="bi bi-folder2-open"></i> Open
+                        <i class="bi bi-folder2-open"></i> 開く
                     </button>
                     <button id="replay-btn" class="action-btn secondary" style="width:auto;">
-                        <i class="bi bi-arrow-counterclockwise"></i> Replay
+                        <i class="bi bi-arrow-counterclockwise"></i> リプレイ
                     </button>
                 </div>
             </div>
             <div class="result-grid">
                 <!-- Full Width: Total -->
                 <div class="res-card full-width">
-                    <div class="res-head"><i class="bi bi-bar-chart-line-fill"></i> All Time Total</div>
+                    <div class="res-head"><i class="bi bi-bar-chart-line-fill"></i> 全期間合計</div>
                     <div class="res-canvas-container" id="con-total">
                         <canvas id="res-canvas-total" class="res-canvas"></canvas>
                     </div>
                 </div>
                 <!-- Half: Daily Gain -->
                 <div class="res-card">
-                    <div class="res-head"><i class="bi bi-graph-up-arrow"></i> Daily Gain History</div>
+                    <div class="res-head"><i class="bi bi-graph-up-arrow"></i> 日次推移</div>
                     <div class="res-canvas-container" id="con-gain">
                         <canvas id="res-canvas-gain" class="res-canvas"></canvas>
                     </div>
                 </div>
                 <!-- Half: Gap -->
                 <div class="res-card">
-                    <div class="res-head"><i class="bi bi-distribute-vertical"></i> Gap to Target</div>
+                    <div class="res-head"><i class="bi bi-distribute-vertical"></i> 1位との差 (Gap)</div>
                     <div class="res-canvas-container" id="con-gap">
                         <canvas id="res-canvas-gap" class="res-canvas"></canvas>
                     </div>
@@ -633,9 +623,9 @@
 
     <div id="controls-bar">
         <div class="file-btn-group">
-            <button id="change-file-btn" class="icon-btn" title="Open New File"><i class="bi bi-folder2-open"></i></button>
-            <button id="open-settings-btn" class="icon-btn" title="Settings"><i class="bi bi-gear-fill"></i></button>
-            <button id="restart-btn" class="icon-btn" title="Restart"><i class="bi bi-skip-start-fill"></i></button>
+            <button id="change-file-btn" class="icon-btn" title="ファイルを開く"><i class="bi bi-folder2-open"></i></button>
+            <button id="open-settings-btn" class="icon-btn" title="設定"><i class="bi bi-gear-fill"></i></button>
+            <button id="restart-btn" class="icon-btn" title="リスタート"><i class="bi bi-skip-start-fill"></i></button>
         </div>
         
         <button id="play-pause-btn"><i class="bi bi-play-fill"></i></button>
@@ -662,16 +652,16 @@
         
         <!-- Dynamic Target Select -->
         <div class="control-group" style="min-width: 100px;">
-             <div class="control-row"><span>TARGET</span></div>
+             <div class="control-row"><span>TARGET (Gap)</span></div>
              <select id="dynamic-gap-target" class="select-input" style="height:30px; padding:0 5px; font-size:12px;">
-                 <option value="Leader">Leader</option>
+                 <option value="Leader">1位 (自動)</option>
              </select>
         </div>
 
         <div class="control-group" style="min-width:110px;">
             <div class="control-row"><span>MODE</span></div>
             <button id="mode-btn" class="icon-btn" style="width:100%;">
-                <i class="bi bi-list-ol"></i> Total Mode
+                <i class="bi bi-list-ol"></i> 通常モード
             </button>
         </div>
     </div>
@@ -680,22 +670,20 @@
     // --- Configuration & Constants ---
     let TOTAL_DURATION_BASE = 300000; 
     let HISTORY_WINDOW = 100; 
-    
-    // スムージング係数
-    const SCALE_SMOOTHING = 0.1; 
 
     // User Config
     const config = {
         title: "Subscriber Race",
         bottomTitle: "Daily Gain",
         totalLabel: "Combined Total",
-        gapTarget: "Leader", // Leader or specific item name
-        enableGapSwitch: true,
+        gapTarget: "Leader", 
+        showGapDetail: true,
         showResult: true,
         showBottomGraph: true,
         showBgGraph: true,
         showTotal: true,
-        showIcons: true
+        showIcons: true,
+        graphLineWidth: 4
     };
 
     // --- Suffixes List (10^3 to 10^306) ---
@@ -729,19 +717,20 @@
     const openSettingsBtn = document.getElementById('open-settings-btn');
     const restartBtn = document.getElementById('restart-btn');
 
+    // Config Inputs
     const confTitle = document.getElementById('config-title');
     const confBottomTitle = document.getElementById('config-bottom-title');
+    const confTotalLabel = document.getElementById('config-total-label');
     const confGapTarget = document.getElementById('config-gap-target');
     const dynamicGapTarget = document.getElementById('dynamic-gap-target');
-    const confTotalLabel = document.getElementById('config-total-label');
-    const confGapBtn = document.getElementById('config-gap-btn');
+    const confShowGapDetail = document.getElementById('config-show-gap-detail');
     const confResult = document.getElementById('config-result');
     const confBottom = document.getElementById('config-bottom-graph');
     const confBg = document.getElementById('config-bg-graph');
     const confTotal = document.getElementById('config-total');
     const confIcons = document.getElementById('config-icons');
+    const confLineWidth = document.getElementById('config-line-width');
     
-    // Duration & History Inputs
     const confDurSlider = document.getElementById('config-duration-slider');
     const confDurInput = document.getElementById('config-duration-input');
     const confHistSlider = document.getElementById('config-history-slider');
@@ -788,11 +777,7 @@
     let isGapMode = false;
     let animationFrameId = null;
 
-    // Smooth Scale State objects
-    const bgScale = { min: 0, max: 100 };
-    const bottomScale = { min: 0, max: 100 };
-
-    // Result Chart Instances
+    // Charts
     let chartTotal, chartGain, chartGap;
 
     // --- Utils ---
@@ -837,7 +822,7 @@
                 }
                 updateGapTargetOptions();
             } else {
-                alert("CSV Error: Check format.");
+                alert("CSVエラー: フォーマットを確認してください。");
             }
         };
         reader.readAsText(file);
@@ -852,48 +837,28 @@
     });
 
     function updateGapTargetOptions() {
-        // 設定画面のプルダウン更新
-        confGapTarget.innerHTML = '<option value="Leader">Leader (Auto)</option>';
-        itemsList.forEach(item => {
-            const opt = document.createElement('option');
-            opt.value = item;
-            opt.textContent = item;
-            confGapTarget.appendChild(opt);
-        });
-
-        // プレイ画面の動的プルダウン更新
-        dynamicGapTarget.innerHTML = '<option value="Leader">Leader (Auto)</option>';
-        itemsList.forEach(item => {
-            const opt = document.createElement('option');
-            opt.value = item;
-            opt.textContent = item;
-            dynamicGapTarget.appendChild(opt);
-        });
-
-        // 現在の値を選択
+        const createOpts = (sel) => {
+            sel.innerHTML = '<option value="Leader">1位 (自動)</option>';
+            itemsList.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item;
+                opt.textContent = item;
+                sel.appendChild(opt);
+            });
+        };
+        createOpts(confGapTarget);
+        createOpts(dynamicGapTarget);
         dynamicGapTarget.value = config.gapTarget;
     }
 
-    // --- Dynamic Target Change ---
-    confGapTarget.addEventListener('change', () => {
-        config.gapTarget = confGapTarget.value;
-        dynamicGapTarget.value = confGapTarget.value;
-    });
+    confGapTarget.addEventListener('change', () => { config.gapTarget = confGapTarget.value; dynamicGapTarget.value = confGapTarget.value; });
+    dynamicGapTarget.addEventListener('change', () => { config.gapTarget = dynamicGapTarget.value; confGapTarget.value = dynamicGapTarget.value; renderFrame(); });
 
-    dynamicGapTarget.addEventListener('change', () => {
-        config.gapTarget = dynamicGapTarget.value;
-        confGapTarget.value = dynamicGapTarget.value; // 設定画面の方も同期
-        renderFrame(); // 即座に反映
-    });
-
-    // --- Settings & Restart Control ---
     openSettingsBtn.addEventListener('click', () => {
-        // 一時停止して設定画面を開く
         isPlaying = false;
         playPauseBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
         settingsScreen.style.display = 'flex';
         setTimeout(() => settingsScreen.style.opacity = 1, 10);
-        // 設定画面を開くときにリストが空でないか確認して再構築
         if(itemsList.length > 0) {
             updateGapTargetOptions();
             confGapTarget.value = config.gapTarget;
@@ -901,7 +866,6 @@
     });
 
     restartBtn.addEventListener('click', () => {
-        // リスタート
         animationTime = 0;
         isPlaying = true;
         playPauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
@@ -912,21 +876,16 @@
         animationFrameId = requestAnimationFrame(gameLoop);
     });
 
-    // Inputs Sync
     confDurSlider.addEventListener('input', () => { confDurInput.value = confDurSlider.value; });
     confDurInput.addEventListener('change', () => { 
-        let val = parseInt(confDurInput.value);
-        if(val < 1) val = 1;
-        confDurInput.value = val;
-        if(val >= 60 && val <= 600) confDurSlider.value = val;
+        let val = parseInt(confDurInput.value); if(val < 1) val = 1;
+        confDurInput.value = val; if(val >= 60 && val <= 600) confDurSlider.value = val;
     });
 
     confHistSlider.addEventListener('input', () => { confHistInput.value = confHistSlider.value; });
     confHistInput.addEventListener('change', () => {
-        let val = parseInt(confHistInput.value);
-        if(val < 1) val = 1;
-        confHistInput.value = val;
-        if(val <= 1000) confHistSlider.value = val;
+        let val = parseInt(confHistInput.value); if(val < 1) val = 1;
+        confHistInput.value = val; if(val <= 500) confHistSlider.value = val;
     });
 
     startBtn.addEventListener('click', () => {
@@ -934,19 +893,18 @@
         config.bottomTitle = confBottomTitle.value || "Daily Gain";
         config.totalLabel = confTotalLabel.value || "Combined Total";
         config.gapTarget = confGapTarget.value;
-        config.enableGapSwitch = confGapBtn.checked;
+        config.showGapDetail = confShowGapDetail.checked;
         config.showResult = confResult.checked;
         config.showBottomGraph = confBottom.checked;
         config.showBgGraph = confBg.checked;
         config.showTotal = confTotal.checked;
         config.showIcons = confIcons.checked;
+        config.graphLineWidth = parseInt(confLineWidth.value) || 4;
 
-        // Sync dynamic select
         dynamicGapTarget.value = config.gapTarget;
-
+        
         const durVal = parseInt(confDurInput.value);
         if(durVal && durVal > 0) TOTAL_DURATION_BASE = durVal * 1000;
-
         const histVal = parseInt(confHistInput.value);
         if(histVal && histVal > 0) HISTORY_WINDOW = histVal;
 
@@ -954,7 +912,6 @@
         bottomGraphTitle.innerHTML = `<i class="bi bi-graph-up"></i> ${config.bottomTitle}`;
         statLabelEl.textContent = config.totalLabel;
         
-        modeBtn.style.display = config.enableGapSwitch ? 'flex' : 'none';
         dailyGraphBox.style.visibility = config.showBottomGraph ? 'visible' : 'hidden';
         bgCanvas.style.display = config.showBgGraph ? 'block' : 'none';
         combinedBox.style.visibility = config.showTotal ? 'visible' : 'hidden';
@@ -965,7 +922,6 @@
         resizeAllCanvases();
         createDOMBars();
         
-        // Start from beginning when clicking Start from settings
         animationTime = 0;
         seekSlider.value = 0;
         seekVal.textContent = "0%";
@@ -974,29 +930,20 @@
         isPlaying = true;
         lastFrameTime = performance.now();
         playPauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
-        
         animationFrameId = requestAnimationFrame(gameLoop);
     });
 
-    // --- Speed Logic ---
     function getSpeedFromSlider(val) {
-        if(val <= 50) {
-            const t = val;
-            return 0.001 * Math.pow(1000, t/50);
-        } else {
-            const t = val - 50;
-            return 1 * Math.pow(100, t/50);
-        }
+        if(val <= 50) return 0.001 * Math.pow(1000, val/50);
+        else return 1 * Math.pow(100, (val-50)/50);
     }
 
     speedSlider.addEventListener('input', (e) => {
         const val = parseFloat(e.target.value);
         playbackSpeed = getSpeedFromSlider(val);
-        let label = "";
-        if(playbackSpeed < 0.01) label = playbackSpeed.toFixed(4) + "x";
-        else if(playbackSpeed < 1) label = playbackSpeed.toFixed(2) + "x";
-        else label = playbackSpeed.toFixed(1) + "x";
-        speedDisplay.textContent = label;
+        let label = playbackSpeed < 1 ? playbackSpeed.toFixed(2) : playbackSpeed.toFixed(1);
+        if(playbackSpeed < 0.01) label = playbackSpeed.toFixed(4);
+        speedDisplay.textContent = label + "x";
     });
 
     // --- Main Loop ---
@@ -1023,31 +970,40 @@
         if(isPlaying) animationFrameId = requestAnimationFrame(gameLoop);
     }
 
-    // --- Text Resizing Logic ---
-    function updateScaledText(element, num, isGain) {
-        let val = Math.floor(num);
-        if(val === 0) val = 0; // Prevent -0
-        
+    // --- Adaptive Text Scaling ---
+    function updateAdaptiveText(element, value, type) {
         let str = "";
-        if (isGain) {
+        let val = Math.floor(value);
+        if(Math.abs(val) < 1e-9) val = 0;
+
+        if (type === 'gain' || type === 'gap-diff') {
             str = (val >= 0 ? '+' : '') + val.toLocaleString();
         } else {
             str = val.toLocaleString();
         }
-        
         element.textContent = str;
-        
         const len = str.length;
-        if (isGain) {
-            if (len > 12) element.style.fontSize = '12px';
-            else if (len > 9) element.style.fontSize = '14px';
-            else if (len > 7) element.style.fontSize = '16px';
-            else element.style.fontSize = '18px';
-        } else {
-            if (len > 12) element.style.fontSize = '16px';
-            else if (len > 10) element.style.fontSize = '20px';
-            else if (len > 8) element.style.fontSize = '22px';
+
+        // More aggressive scaling logic for larger numbers
+        if (type === 'main' || type === 'total') {
+            if (len > 15) element.style.fontSize = '12px';
+            else if (len > 13) element.style.fontSize = '14px';
+            else if (len > 11) element.style.fontSize = '16px';
+            else if (len > 9) element.style.fontSize = '20px';
             else element.style.fontSize = '26px';
+        } else if (type === 'gain') {
+             if (len > 12) element.style.fontSize = '9px';
+             else if (len > 10) element.style.fontSize = '10px';
+             else if (len > 8) element.style.fontSize = '12px';
+             else element.style.fontSize = '16px';
+        } else if (type === 'gap') {
+             if (len > 12) element.style.fontSize = '10px';
+             else if (len > 10) element.style.fontSize = '11px';
+             else element.style.fontSize = '14px';
+        } else if (type === 'gap-diff') {
+             if (len > 12) element.style.fontSize = '9px';
+             else if (len > 10) element.style.fontSize = '10px';
+             else element.style.fontSize = '12px';
         }
     }
 
@@ -1065,31 +1021,34 @@
 
         let items = [];
         let totalVal = 0;
+        let totalGain = 0;
         
         const getVal = (name) => lerp(dLow.values[name], dHigh.values[name], ratio);
+        const getDiff = (name) => lerp(dLow.diffs[name], dHigh.diffs[name], ratio);
 
         itemsList.forEach(name => {
             const val = getVal(name);
-            const df1 = dLow.diffs[name];
-            const df2 = dHigh.diffs[name];
-            const diff = lerp(df1, df2, ratio);
+            const diff = getDiff(name);
             items.push({ name, val, diff });
             totalVal += val;
+            totalGain += diff;
         });
 
-        // Sort by Value for Bar Race
         items.sort((a,b) => b.val - a.val);
         const maxVal = items[0].val; 
         
-        // Determine Target Value for Gap
-        let gapTargetVal = 0;
+        // Gap Target Logic
+        let targetVal = 0;
+        let targetDiff = 0;
         if (config.gapTarget === 'Leader') {
-            gapTargetVal = items[0].val; // Current Leader Value
+            targetVal = items[0].val;
+            targetDiff = items[0].diff;
         } else {
-            gapTargetVal = getVal(config.gapTarget);
+            targetVal = getVal(config.gapTarget);
+            targetDiff = getDiff(config.gapTarget);
         }
 
-        // Update Bars
+        // DOM Update
         items.forEach((item, rank) => {
             const el = barElements[item.name];
             el.row.style.transform = `translateY(${rank * 70}px)`;
@@ -1097,16 +1056,40 @@
             const barPct = (item.val / (maxVal * 1.25)) * 100;
             el.bar.style.width = barPct + '%';
             
-            el.mVal.textContent = Math.floor(item.val).toLocaleString();
-            
-            let gain = Math.floor(item.diff);
-            if(gain === 0) gain = 0; // Prevent -0
-            const gainStr = (gain >= 0 ? '+' : '') + gain.toLocaleString();
-            
-            el.sVal.textContent = gainStr;
-            el.sVal.className = 'val-sub' + (gain < 0 ? ' negative' : '');
+            // Text Updates with Scaling
+            updateAdaptiveText(el.mVal, item.val, 'main');
+            updateAdaptiveText(el.sVal, item.diff, 'gain');
+            el.sVal.className = 'val-diff' + (item.diff < 0 ? ' negative' : '');
 
-            // Label
+            // Gap & Gap Gain
+            if (config.showGapDetail) {
+                let gap = targetVal - item.val;
+                // Gap Gain calculation: 
+                // Gap = Target - Self. 
+                // NextGap = NextTarget - NextSelf.
+                // GapDiff = NextGap - Gap = (NextTarget - Target) - (NextSelf - Self) = TargetDiff - SelfDiff
+                let gapDiff = targetDiff - item.diff;
+
+                if (Math.abs(gap) < 0.1) {
+                    // It is the target
+                    el.gVal.innerHTML = config.gapTarget==='Leader'?'Leader':'Target';
+                    el.gVal.style.color = 'var(--color-green)';
+                    el.gdVal.textContent = '';
+                } else {
+                    updateAdaptiveText(el.gVal, gap, 'gap');
+                    el.gVal.style.color = '#ccc';
+                    updateAdaptiveText(el.gdVal, gapDiff, 'gap-diff');
+                    
+                    // Color logic for Gap Diff: Positive means gap grew (bad for chaser), Negative means gap shrank (good)
+                    // If gap is negative (ahead of target), logic flips, but standard race implies leader is ahead.
+                    el.gdVal.className = 'val-gap-diff' + (gapDiff > 0 ? ' positive' : ' negative');
+                }
+                el.gRow.style.display = 'flex';
+            } else {
+                el.gRow.style.display = 'none';
+            }
+
+            // Labels
             const name = item.name;
             const contrastColor = getContrastYIQ(colors[name]);
             const labelWidth = name.length * 12 + 50; 
@@ -1122,28 +1105,13 @@
                 el.labelOut.style.display = "none";
             }
 
+            // Gap Mode Visual (Bar Length)
             if(isGapMode) {
-                let gap = gapTargetVal - item.val;
-                
-                // Gap logic display
-                // If it is effectively 0 (the target/leader)
-                if (Math.abs(gap) < 0.1) {
-                    if (config.gapTarget === 'Leader') {
-                        el.gVal.innerHTML = '<i class="bi bi-trophy-fill"></i> Leader';
-                        el.gVal.style.color = 'var(--color-green)';
-                    } else {
-                        el.gVal.innerHTML = '<i class="bi bi-crosshair"></i> Target';
-                        el.gVal.style.color = 'var(--color-green)';
-                    }
-                } else {
-                    let displayGap = Math.floor(gap);
-                    if(displayGap === 0) displayGap = 0; // Prevent -0
-                    el.gVal.textContent = `(Gap: ${displayGap.toLocaleString()})`;
-                    el.gVal.style.color = 'var(--color-sub)';
-                }
-                el.gVal.style.display = 'inline';
-            } else {
-                el.gVal.style.display = 'none';
+                // Gap mode: show bar as distance from leader? Or diff?
+                // Visualizer usually keeps bars proportional to value. Gap is text.
+                // If user wants "Gap Mode" bars, we recalculate width.
+                // Assuming "Gap Mode" just changes text info in prev version, but now we have text always.
+                // Let's make "Gap Mode" change the bottom graph to Gap History.
             }
         });
 
@@ -1152,18 +1120,15 @@
         const dObj = new Date(lerp(dLow.date.getTime(), dHigh.date.getTime(), ratio));
         dateDisplay.textContent = formatDate(dObj);
         
-        let totalGain = 0;
-        items.forEach(i => totalGain += i.diff);
-        
-        updateScaledText(combinedDisplay, totalVal, false);
-        updateScaledText(combinedGain, totalGain, true);
+        updateAdaptiveText(combinedDisplay, totalVal, 'total');
+        updateAdaptiveText(combinedGain, totalGain, 'gain');
         combinedGain.className = 'stat-gain' + (totalGain < 0 ? ' negative' : '');
 
         if(config.showBgGraph) {
             renderGraph({
                 ctx: bgCtx, canvas: bgCanvas, data: processedData, items: itemsList,
                 currentIdx: currentFloatIdx, windowSize: HISTORY_WINDOW,
-                mode: 'Total', scaleState: bgScale, lineWidth: 4, opacity: 0.6
+                mode: 'Total', lineWidth: config.graphLineWidth, opacity: 0.6
             });
         }
 
@@ -1171,14 +1136,14 @@
             renderGraph({
                 ctx: dailyCtx, canvas: dailyCanvas, data: processedData, items: itemsList,
                 currentIdx: currentFloatIdx, windowSize: HISTORY_WINDOW,
-                mode: isGapMode ? 'Gap' : 'Diff', scaleState: bottomScale, lineWidth: 3, opacity: 1.0,
+                mode: isGapMode ? 'Gap' : 'Diff', lineWidth: 3, opacity: 1.0,
                 drawXAxis: true
             });
         }
     }
 
-    // --- Dynamic Graph Renderer ---
-    function renderGraph({ctx, canvas, data, items, currentIdx, windowSize, mode, scaleState, lineWidth, opacity, drawXAxis}) {
+    // --- Dynamic Graph Renderer (Fixed Sync) ---
+    function renderGraph({ctx, canvas, data, items, currentIdx, windowSize, mode, lineWidth, opacity, drawXAxis}) {
         const w = canvas.logicalWidth;
         const h = canvas.logicalHeight;
         ctx.clearRect(0, 0, w, h);
@@ -1187,42 +1152,26 @@
         const totalLen = data.length;
         if(totalLen < 2) return;
 
+        // Exact window for calculation
         const endIdx = Math.floor(currentIdx);
         const startIdx = Math.max(0, endIdx - windowSize);
-        const loopStart = Math.max(0, startIdx - 2); 
+        // Loop start allows drawing line from slightly before left edge
+        const loopStart = Math.max(0, startIdx - 1); 
         
-        // MODIFIED: Stop calculation exactly at the current frame to prevent graph "looking ahead"
-        // This ensures Y-axis scale reflects current state, syncing with the line.
-        const calcEnd = Math.min(totalLen - 1, endIdx); 
-
-        // Gap Mode Auto (Leader) - Show only the 2nd place (Chaser) to fix scale
+        // Gap Mode Logic (Leader tracking)
         let activeItems = items;
         if (mode === 'Gap' && config.gapTarget === 'Leader') {
-            const row = data[Math.floor(currentIdx)]; 
+            const row = data[endIdx]; 
             if(row) {
-                // Find Leader value
                 let leaderVal = -Infinity;
-                items.forEach(name => {
-                    const v = row.values[name];
-                    if(v > leaderVal) leaderVal = v;
-                });
-                
-                // Find the closest Chaser (2nd place or max item that is not leader)
-                let chaserName = null;
-                let chaserVal = -Infinity;
-                
-                items.forEach(name => {
-                    const v = row.values[name];
-                    if (v < leaderVal && v > chaserVal) {
-                        chaserVal = v;
-                        chaserName = name;
+                items.forEach(n => { if(row.values[n]>leaderVal) leaderVal = row.values[n]; });
+                let chaserName = null; let chaserVal = -Infinity;
+                items.forEach(n => {
+                    if (row.values[n] < leaderVal && row.values[n] > chaserVal) {
+                        chaserVal = row.values[n]; chaserName = n;
                     }
                 });
-                
-                // If found, restrict items to this one line so scale adapts to it
-                if (chaserName) {
-                    activeItems = [chaserName];
-                }
+                if (chaserName) activeItems = [chaserName];
             }
         }
 
@@ -1232,120 +1181,98 @@
             if(mode === 'Total') return row.values[name];
             if(mode === 'Diff') return row.diffs[name];
             
-            // Gap Mode
+            // Gap Calc
             let targetVal = 0;
             if (config.gapTarget === 'Leader') {
                 let leader = -Infinity;
-                for(let m=0; m<items.length; m++) {
-                    const v = row.values[items[m]];
-                    if(v > leader) leader = v;
-                }
+                for(let m=0; m<items.length; m++) if(row.values[items[m]]>leader) leader = row.values[items[m]];
                 targetVal = leader;
             } else {
                 targetVal = row.values[config.gapTarget];
             }
-            
-            let val = targetVal - row.values[name];
-            return items.length === 1 ? 0 : val;
+            return targetVal - row.values[name];
         };
 
-        // SCALE CALCULATION (Use activeItems)
-        let targetMin = Infinity;
-        let targetMax = -Infinity;
-        
-        for(let i = loopStart; i <= calcEnd; i++) {
+        // --- PRECISE SCALE CALCULATION (NO LERP) ---
+        // Calculate Min/Max exactly for the points that will be drawn in this frame.
+        let localMin = Infinity;
+        let localMax = -Infinity;
+
+        // Check range [startIdx, endIdx + 1] to cover the interpolation
+        const checkEnd = Math.min(totalLen - 1, endIdx + 1);
+
+        for(let i = loopStart; i <= checkEnd; i++) {
             for(let k=0; k<activeItems.length; k++) {
                 const name = activeItems[k];
-                // 特定ターゲット指定時の除外
                 if (mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) continue;
-
                 const val = getValue(i, name);
-                
-                if (val < targetMin) targetMin = val;
-                if (val > targetMax) targetMax = val;
+                if (val < localMin) localMin = val;
+                if (val > localMax) localMax = val;
             }
         }
         
-        // Ensure reasonable defaults if no data
-        if(targetMin === Infinity) targetMin = 0;
-        if(targetMax === -Infinity) targetMax = 10;
+        if(localMin === Infinity) localMin = 0;
+        if(localMax === -Infinity) localMax = 10;
         
-        let range = targetMax - targetMin || 10;
-        
-        // MODIFIED: Allow negative values (Removed the Gap mode 0 clamp)
-        // Add minimal padding
-        targetMin -= range * 0.1;
-        targetMax += range * 0.1;
+        let range = localMax - localMin || 10;
+        // Padding
+        const pMin = localMin - range * 0.1;
+        const pMax = localMax + range * 0.1;
+        const pRange = pMax - pMin || 1;
 
-        // Apply smooth scale change
-        scaleState.min = lerp(scaleState.min, targetMin, SCALE_SMOOTHING);
-        scaleState.max = lerp(scaleState.max, targetMax, SCALE_SMOOTHING);
+        // Layout
+        const padT = 15;
+        const padB = drawXAxis ? 30 : 15;
+        const padL = 0;
+        const padR = 10;
+        const drawH = h - (padT + padB);
+        const drawW = w - (padL + padR);
 
-        const yMin = scaleState.min;
-        const yMax = scaleState.max;
-        const yRange = yMax - yMin || 1;
-
-        // PADDING logic
-        const paddingTop = 15;
-        const paddingBottom = drawXAxis ? 30 : 15;
-        const paddingLeft = 0;
-        const paddingRight = 10;
-        
-        const drawH = h - (paddingTop + paddingBottom);
-        const drawW = w - (paddingLeft + paddingRight);
-
-        // GRID & LABELS
+        // GRID (Synchronized)
         ctx.fillStyle = '#555';
         ctx.font = '10px Inter';
         ctx.strokeStyle = 'rgba(255,255,255,0.08)';
         ctx.lineWidth = 1;
 
+        // Draw Grid lines based on current pMin/pMax
         if(mode !== 'Total') {
-            const roughStep = yRange / 5; 
+            const roughStep = pRange / 5; 
             const gridMag = Math.pow(10, Math.floor(Math.log10(roughStep)));
             const norm = roughStep / gridMag;
             let niceStep = (norm<1.5)?1:(norm<3)?2:(norm<7)?5:10;
             const gridStep = niceStep * gridMag;
 
-            // Ensure grid lines cover negative areas correctly
-            const startTick = Math.ceil(yMin / gridStep) * gridStep;
-            for(let v = startTick; v <= yMax; v += gridStep) {
-                // Prevent -0 on axis
-                let displayV = v;
-                if (Math.abs(displayV) < 1e-10) displayV = 0;
-
-                const y = paddingTop + drawH - ((displayV - yMin) / yRange) * drawH;
-                if(y < paddingTop || y > h - paddingBottom) continue; 
+            const startTick = Math.ceil(pMin / gridStep) * gridStep;
+            for(let v = startTick; v <= pMax; v += gridStep) {
+                let displayV = v; if(Math.abs(displayV)<1e-9) displayV=0;
+                const y = padT + drawH - ((displayV - pMin) / pRange) * drawH;
+                if(y < padT || y > h - padB) continue; 
                 ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
                 ctx.fillText(formatNum(displayV), 5, y - 4);
             }
         }
 
         const windowStart = currentIdx - windowSize;
+        const getX = (valIdx) => padL + (valIdx - windowStart) / windowSize * drawW;
+        const getY = (val) => padT + drawH - ((val - pMin) / pRange) * drawH;
 
-        const getX = (valIdx) => paddingLeft + (valIdx - windowStart) / windowSize * drawW;
-        const getY = (val) => paddingTop + drawH - ((val - yMin) / yRange) * drawH;
-
-        // X-AXIS DATES
+        // X-AXIS
         if(drawXAxis) {
             ctx.textAlign = 'center';
             const iStart = Math.ceil(windowStart);
             const iEnd = Math.floor(endIdx);
-            
             for(let i = iStart; i <= iEnd; i++) {
                 if(i < 0 || i >= totalLen) continue;
                 const d = data[i].date;
                 if(d.getDate() === 1) {
                     const x = getX(i);
-                    ctx.beginPath(); 
-                    ctx.moveTo(x, paddingTop); 
-                    ctx.lineTo(x, h - paddingBottom); 
-                    ctx.strokeStyle = 'rgba(255,255,255,0.1)'; 
-                    ctx.stroke();
-                    
+                    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, h - padB); 
+                    ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.stroke();
                     ctx.fillStyle = '#888';
+                    
+                    // Format: 9-Dec-18
+                    const dd = d.getDate();
                     const mNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                    const dd = String(d.getDate()).padStart(2, '0');
                     const mm = mNames[d.getMonth()];
                     const yy = String(d.getFullYear()).slice(-2);
                     
@@ -1355,11 +1282,9 @@
             ctx.textAlign = 'left'; 
         }
 
-        // LINES (Draw activeItems)
+        // LINES
         for(let k=0; k<activeItems.length; k++) {
             const name = activeItems[k];
-            
-            // Specific logic: If this item IS the target in fixed mode, skip.
             if (mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) continue;
 
             ctx.beginPath();
@@ -1374,6 +1299,7 @@
             const processPoint = (i, isTip) => {
                 let val;
                 if(isTip) {
+                    // Interpolate last segment
                     const idxLow = Math.floor(i);
                     const idxHigh = Math.min(totalLen - 1, idxLow + 1);
                     const r = i - idxLow;
@@ -1383,7 +1309,7 @@
                 }
 
                 const x = getX(i);
-                const y = getY(val);
+                const y = getY(val); // Uses precise pMin/pMax
 
                 if(!started) {
                     ctx.moveTo(x, y);
@@ -1397,14 +1323,15 @@
             };
 
             for(let i = loopStart; i <= endIdx; i++) processPoint(i, false);
-            if(currentIdx > endIdx) processPoint(currentIdx, true);
+            // Draw up to exact float index
+            processPoint(currentIdx, true);
             
             if(started) {
                 ctx.lineTo(lastX, lastY);
                 ctx.stroke();
                 if(mode !== 'Total') {
                     ctx.fillStyle = colors[name];
-                    ctx.beginPath(); ctx.arc(lastX, lastY, 4, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(lastX, lastY, lineWidth*1.5, 0, Math.PI * 2); ctx.fill();
                 }
             }
         }
@@ -1431,11 +1358,7 @@
             }
             return false;
         }
-
-        checkHover(cx, cy) {
-            return this.handleInteraction(cx, cy);
-        }
-
+        checkHover(cx, cy) { return this.handleInteraction(cx, cy); }
         clearHighlight() { this.draw(-1); }
 
         init(data, items) {
@@ -1469,13 +1392,11 @@
                 });
                 this.dataPoints.push(rowObj);
             }
-            
             let range = maxVal - minVal || 10;
             const buffer = range * 0.1;
-            this.yMin = minVal - buffer; // Support full negative range
+            this.yMin = minVal - buffer; 
             this.yMax = maxVal + buffer;
             this.yRange = this.yMax - this.yMin;
-            
             setupCanvas(this.canvas, this.ctx);
             this.draw();
         }
@@ -1483,28 +1404,20 @@
         showTooltipDOM(relX, relY, idx, rect) {
             const dp = this.dataPoints[idx];
             tooltip.style.display = 'block';
-            
             const globalX = rect.left + relX;
             const globalY = rect.top + relY;
-            
             let html = `<div class="tt-date">${formatDate(dp.date)}</div>`;
             let sorted = itemsList.map(n => ({n, v: dp.values[n]}))
                                   .sort((a,b) => (this.mode==='Gap' ? a.v - b.v : b.v - a.v)).slice(0, 8); 
             sorted.forEach(item => {
-                let val = Math.floor(item.v);
-                if(val === 0) val = 0;
+                let val = Math.floor(item.v); if(val===0) val=0;
                 html += `<div class="tt-row"><span style="color:${colors[item.n]}">${item.n}</span><span class="tt-val">${val.toLocaleString()}</span></div>`;
             });
             tooltip.innerHTML = html;
-
             const ttRect = tooltip.getBoundingClientRect();
             const winW = window.innerWidth;
-            
             let finalLeft = globalX + 15;
-            if (finalLeft + ttRect.width > winW - 10) {
-                finalLeft = globalX - ttRect.width - 15;
-            }
-            
+            if (finalLeft + ttRect.width > winW - 10) finalLeft = globalX - ttRect.width - 15;
             tooltip.style.left = finalLeft + 'px';
             tooltip.style.top = (globalY + 15) + 'px';
         }
@@ -1530,33 +1443,25 @@
                 const y = getY(v);
                 if(y < 5 || y > h - 5) continue;
                 ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
-                
-                let displayV = v;
-                if (Math.abs(displayV) < 1e-10) displayV = 0;
+                let displayV = v; if (Math.abs(displayV) < 1e-9) displayV = 0;
                 ctx.fillText(formatNum(displayV), 5, y-4);
             }
 
             itemsList.forEach(name => {
                 if (this.mode === 'Gap' && config.gapTarget !== 'Leader' && name === config.gapTarget) return;
-
                 ctx.beginPath(); 
                 ctx.strokeStyle = colors[name]; 
                 ctx.lineWidth = 2;
                 ctx.lineJoin = 'round';
                 ctx.lineCap = 'round';
-
                 let lastX, lastY;
                 let started = false;
-
                 for(let i = 0; i < len; i++) {
                     const x = (i / (len-1)) * w;
                     const val = this.dataPoints[i].values[name];
                     const y = getY(val);
-
-                    if(!started) { 
-                        ctx.moveTo(x, y); 
-                        started = true; 
-                    } else {
+                    if(!started) { ctx.moveTo(x, y); started = true; } 
+                    else {
                         const midX = (lastX + x) / 2;
                         const midY = (lastY + y) / 2;
                         ctx.quadraticCurveTo(lastX, lastY, midX, midY);
@@ -1575,7 +1480,7 @@
         }
     }
 
-    // --- Result Screen Logic ---
+    // --- Screen Logic ---
     function showResultScreen() {
         resultScreen.style.display = 'flex';
         setTimeout(() => resultScreen.style.opacity = 1, 10);
@@ -1603,22 +1508,9 @@
         if(!anyHover) tooltip.style.display = 'none';
     }
 
-    window.addEventListener('mousemove', (e) => {
-        handleResultInteraction(e.clientX, e.clientY);
-    });
-
-    window.addEventListener('touchstart', (e) => {
-        if(e.touches.length > 0) {
-            handleResultInteraction(e.touches[0].clientX, e.touches[0].clientY);
-        }
-    }, {passive: true});
-
-    window.addEventListener('touchmove', (e) => {
-        if(e.touches.length > 0) {
-            handleResultInteraction(e.touches[0].clientX, e.touches[0].clientY);
-        }
-    }, {passive: true});
-
+    window.addEventListener('mousemove', (e) => { handleResultInteraction(e.clientX, e.clientY); });
+    window.addEventListener('touchstart', (e) => { if(e.touches.length > 0) handleResultInteraction(e.touches[0].clientX, e.touches[0].clientY); }, {passive: true});
+    window.addEventListener('touchmove', (e) => { if(e.touches.length > 0) handleResultInteraction(e.touches[0].clientX, e.touches[0].clientY); }, {passive: true});
 
     replayBtn.addEventListener('click', () => {
         resultScreen.style.opacity = 0;
@@ -1633,7 +1525,7 @@
         animationFrameId = requestAnimationFrame(gameLoop);
     });
 
-    // --- Common Helpers ---
+    // --- Helpers ---
     function setupCanvas(canvas, ctx) {
         if(!canvas.parentElement) return;
         const dpr = window.devicePixelRatio || 1;
@@ -1700,17 +1592,38 @@
             const row = document.createElement('div'); row.className = 'bar-row';
             const wrapper = document.createElement('div'); wrapper.className = 'bar-wrapper';
             const bar = document.createElement('div'); bar.className = 'bar'; bar.style.backgroundColor = colors[name];
-            const img = document.createElement('img'); img.className = 'bar-img'; if(itemImages[name]) img.src = itemImages[name];
+            
+            if(config.showIcons) {
+                const img = document.createElement('img'); img.className = 'bar-img'; 
+                if(itemImages[name]) { img.src = itemImages[name]; img.style.display='block'; }
+                bar.appendChild(img);
+            }
+            
             const labelIn = document.createElement('div'); labelIn.className = 'bar-label-in';
-            const vals = document.createElement('div'); vals.className = 'bar-values';
-            const mVal = document.createElement('div'); mVal.className = 'val-main';
             const labelOut = document.createElement('div'); labelOut.className = 'label-popout';
-            const subGroup = document.createElement('div'); subGroup.className = 'val-sub-group';
-            const sVal = document.createElement('div'); sVal.className = 'val-sub'; 
+            
+            // Value Container structure
+            const vals = document.createElement('div'); vals.className = 'bar-values';
+            
+            // Row 1: Main Value + Diff
+            const row1 = document.createElement('div'); row1.className = 'val-row-main';
+            const mVal = document.createElement('div'); mVal.className = 'val-main';
+            const sVal = document.createElement('div'); sVal.className = 'val-diff'; 
+            row1.append(mVal, sVal);
+
+            // Row 2: Gap Info
+            const row2 = document.createElement('div'); row2.className = 'val-row-sub';
+            const gLabel = document.createElement('span'); gLabel.className = 'val-gap-label'; gLabel.textContent = "Gap:";
             const gVal = document.createElement('div'); gVal.className = 'val-gap'; 
-            subGroup.append(sVal, gVal); vals.append(mVal, labelOut, subGroup);
-            bar.append(img, labelIn, vals); wrapper.append(bar); row.append(wrapper); barsContainer.append(row);
-            barElements[name] = { row, bar, img, labelIn, labelOut, mVal, sVal, gVal };
+            const gdVal = document.createElement('div'); gdVal.className = 'val-gap-diff';
+            row2.append(gLabel, gVal, gdVal);
+
+            vals.append(row1, row2);
+            bar.append(labelIn, vals); 
+            wrapper.append(bar, labelOut); // labelOut is sibling to bar for overflow
+            row.append(wrapper); barsContainer.append(row);
+            
+            barElements[name] = { row, bar, labelIn, labelOut, mVal, sVal, gRow: row2, gVal, gdVal };
         });
     }
 
@@ -1728,40 +1641,30 @@
 
     modeBtn.addEventListener('click', () => {
         isGapMode = !isGapMode;
-        modeBtn.innerHTML = isGapMode ? '<i class="bi bi-distribute-vertical"></i> Gap Mode' : '<i class="bi bi-list-ol"></i> Total Mode';
+        modeBtn.innerHTML = isGapMode ? '<i class="bi bi-distribute-vertical"></i> Gapモード' : '<i class="bi bi-list-ol"></i> 通常モード';
         modeBtn.className = isGapMode ? 'icon-btn active' : 'icon-btn';
-        bottomGraphTitle.innerHTML = isGapMode ? `<i class="bi bi-distribute-vertical"></i> Gap to Target` : `<i class="bi bi-graph-up"></i> ${config.bottomTitle}`;
+        bottomGraphTitle.innerHTML = isGapMode ? `<i class="bi bi-distribute-vertical"></i> 1位との差 (Gap)` : `<i class="bi bi-graph-up"></i> ${config.bottomTitle}`;
         renderFrame();
     });
 
     function lerp(a, b, t) { return a + (b - a) * t; }
     function formatDate(d) {
-        const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-        return `${m[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+        // Nov 10, 2018 format
+        const mNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        return `${mNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
     }
     
-    // --- FORMATTER (Comprehensive) ---
     function formatNum(n) {
-        if (n === 0 || Math.abs(n) < 1e-10) return "0"; // Handle 0 and -0
-        
+        if (n === 0 || Math.abs(n) < 1e-9) return "0"; 
         let abs = Math.abs(n);
         let sign = n < 0 ? "-" : "";
-
         if (abs < 1000) return sign + Math.floor(abs).toLocaleString();
-
-        // 10^3 (K) is index 0 in SUFFIXES
-        // log10(1000) = 3 -> (3/3)-1 = 0
-        // log10(1e6) = 6 -> (6/3)-1 = 1
         const exp = Math.floor(Math.log10(abs) / 3);
         const suffixIndex = exp - 1;
-
         if (suffixIndex >= 0 && suffixIndex < SUFFIXES.length) {
             const scaled = abs / Math.pow(1000, exp);
-            // Show 1 decimal place, remove .0
             return sign + scaled.toFixed(1).replace('.0','') + SUFFIXES[suffixIndex];
         }
-        
-        // Fallback for extremely huge numbers not in list (unlikely with this list)
         return sign + Math.floor(abs).toLocaleString();
     }
     
@@ -1772,8 +1675,13 @@
         const mag = Math.pow(10, Math.floor(Math.log10(roughStep)));
         let niceStep = (roughStep/mag < 1.5) ? 1 : (roughStep/mag < 3) ? 2 : (roughStep/mag < 7) ? 5 : 10;
         const step = niceStep * mag;
-        for(let v=0; v < maxVal; v+=step) {
+        
+        // Always include 0
+        for(let v=0; v <= maxVal; v+=step) {
             const pct = (v/maxVal)*100;
+            // Limit to 100% to avoid overflow
+            if(pct > 100) break;
+            
             const l = document.createElement('div'); l.className='grid-line'; l.style.left=pct+'%';
             const t = document.createElement('div'); t.className='axis-label'; t.textContent=formatNum(v); t.style.left=pct+'%';
             axisContainer.append(l, t);
