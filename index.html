@@ -562,7 +562,14 @@
                 <div class="setting-item settings-full-width">
                      <span class="setting-label"><i class="bi bi-palette"></i> グラフ線の太さ</span>
                      <div style="display:flex; width:100%; gap:10px; align-items:center;">
-                        <input type="range" id="config-line-width" min="1" max="10" value="4" style="flex:1;">
+                        <input type="range" id="config-line-width" min="1" max="10" value="3" style="flex:1;">
+                     </div>
+                </div>
+                
+                <div class="setting-item settings-full-width">
+                     <span class="setting-label"><i class="bi bi-circle-fill"></i> グラフの円の大きさ</span>
+                     <div style="display:flex; width:100%; gap:10px; align-items:center;">
+                        <input type="range" id="config-dot-size" min="0" max="20" value="4" style="flex:1;">
                      </div>
                 </div>
 
@@ -717,7 +724,8 @@
         showBgGraph: true,
         showTotal: true,
         showIcons: true,
-        graphLineWidth: 4,
+        graphLineWidth: 3,
+        graphDotSize: 4,
         bgOpacity: 60,
         history: 100,
         duration: 300
@@ -770,6 +778,7 @@
     const confTotal = document.getElementById('config-total');
     const confIcons = document.getElementById('config-icons');
     const confLineWidth = document.getElementById('config-line-width');
+    const confDotSize = document.getElementById('config-dot-size');
     const confBgOpacity = document.getElementById('config-bg-opacity');
     const bgOpacityDisp = document.getElementById('bg-opacity-disp');
     
@@ -940,6 +949,7 @@
         confTotal.checked = config.showTotal;
         confIcons.checked = config.showIcons;
         confLineWidth.value = config.graphLineWidth;
+        confDotSize.value = config.graphDotSize;
         confBgOpacity.value = config.bgOpacity;
         bgOpacityDisp.textContent = config.bgOpacity + "%";
         
@@ -998,7 +1008,8 @@
         config.showBgGraph = confBg.checked;
         config.showTotal = confTotal.checked;
         config.showIcons = confIcons.checked;
-        config.graphLineWidth = parseInt(confLineWidth.value) || 4;
+        config.graphLineWidth = parseInt(confLineWidth.value) || 3;
+        config.graphDotSize = parseInt(confDotSize.value) || 4;
         config.bgOpacity = parseInt(confBgOpacity.value) || 60;
         
         dynamicGapTarget.value = config.gapTarget;
@@ -1237,7 +1248,8 @@
                 ctx: bgCtx, canvas: bgCanvas, data: processedData, items: itemsList,
                 currentIdx: currentFloatIdx, windowSize: HISTORY_WINDOW,
                 mode: 'Total', lineWidth: config.graphLineWidth, opacity: 1.0, 
-                isBackground: true, smoothMin: 0, smoothMax: totalVal * 1.2 
+                isBackground: true, smoothMin: 0, smoothMax: totalVal * 1.2,
+                dotSize: config.graphDotSize
             });
         }
 
@@ -1247,7 +1259,8 @@
                 currentIdx: currentFloatIdx, windowSize: HISTORY_WINDOW,
                 mode: graphMode, lineWidth: config.graphLineWidth, opacity: 1.0,
                 drawXAxis: true, isBackground: false,
-                smoothMin: smoothGraphMin, smoothMax: smoothGraphMax
+                smoothMin: smoothGraphMin, smoothMax: smoothGraphMax,
+                dotSize: config.graphDotSize
             });
         }
     }
@@ -1302,7 +1315,7 @@
 
 
     // --- Dynamic Graph Renderer (Fixed Sync & Smoothing) ---
-    function renderGraph({ctx, canvas, data, items, currentIdx, windowSize, mode, lineWidth, opacity, drawXAxis, isBackground, smoothMin, smoothMax}) {
+    function renderGraph({ctx, canvas, data, items, currentIdx, windowSize, mode, lineWidth, opacity, drawXAxis, isBackground, smoothMin, smoothMax, dotSize}) {
         const w = canvas.logicalWidth;
         const h = canvas.logicalHeight;
         ctx.clearRect(0, 0, w, h);
@@ -1464,12 +1477,10 @@
                 if(!isBackground) {
                     ctx.fillStyle = colors[name];
                     ctx.beginPath(); 
-                    ctx.arc(lastX, lastY, lineWidth * 1.5, 0, Math.PI * 2); 
+                    // Use passed dotSize instead of lineWidth dependency
+                    ctx.arc(lastX, lastY, dotSize, 0, Math.PI * 2); 
                     ctx.fill();
-                    // Optional white border for dot visibility
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
+                    // REMOVED border stroke
                 }
             }
         }
