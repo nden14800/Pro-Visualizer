@@ -929,6 +929,8 @@
         const suffix = config.gapTarget === 'Leader' ? "1位との差 (Gap)" : `${config.gapTarget}との差`;
         if (isGapMode) {
             bottomGraphTitle.innerHTML = `<i class="bi bi-distribute-vertical"></i> ${suffix}`;
+        } else {
+            bottomGraphTitle.innerHTML = `<i class="bi bi-graph-up"></i> ${config.bottomTitle}`;
         }
         resGapTitle.innerHTML = `<i class="bi bi-distribute-vertical"></i> ${suffix}`;
     }
